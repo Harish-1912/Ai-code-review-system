@@ -1,0 +1,735 @@
+code,language,bug_type,has_bug,corrected_code,description
+"def divide(a, b):
+    return a / b",python,zero_division,1,"def divide(a, b):
+    if b == 0:
+        raise ValueError('Cannot divide by zero')
+    return a / b",Missing zero division guard
+"def add(a, b):
+    return a + b",python,none,0,"def add(a, b):
+    return a + b",Clean addition function
+"x = []
+def append_item(item, lst=[]):
+    lst.append(item)
+    return lst",python,mutable_default,1,"def append_item(item, lst=None):
+    if lst is None:
+        lst = []
+    lst.append(item)
+    return lst",Mutable default argument
+"try:
+    result = int(input())
+except:
+    print('error')",python,bare_except,1,"try:
+    result = int(input())
+except ValueError as e:
+    print(f'Invalid input: {e}')",Bare except clause
+"import os
+files = os.listdir('.')
+for f in files:
+    print(f)",python,none,0,"import os
+files = os.listdir('.')
+for f in files:
+    print(f)",Clean directory listing
+"password = 'admin123'
+print(password)",python,hardcoded_secret,1,"import os
+password = os.environ.get('PASSWORD')
+print(password)",Hardcoded password in source
+"def factorial(n):
+    return n * factorial(n-1)",python,infinite_recursion,1,"def factorial(n):
+    if n <= 1:
+        return 1
+    return n * factorial(n - 1)",Missing base case in recursion
+"data = {'key': 'value'}
+print(data['missing_key'])",python,key_error,1,"data = {'key': 'value'}
+print(data.get('missing_key', 'default'))",KeyError: accessing non-existent dict key
+"def is_even(n):
+    return n % 2",python,wrong_return,1,"def is_even(n):
+    return n % 2 == 0",Returns int not bool
+"lst = [1,2,3]
+for i in range(len(lst)):
+    print(lst[i])",python,antipattern,1,"lst = [1,2,3]
+for item in lst:
+    print(item)",Using index instead of direct iteration
+"if x == None:
+    pass",python,none_comparison,1,"if x is None:
+    pass",Use 'is None' not '== None'
+result = eval(input('Enter expression: ')),python,eval_danger,1,"# Use ast.literal_eval for safe evaluation
+import ast
+result = ast.literal_eval(input('Enter expression: '))",Dangerous eval of user input
+"def get_user(id):
+    query = 'SELECT * FROM users WHERE id = ' + id
+    return db.execute(query)",python,sql_injection,1,"def get_user(id):
+    query = 'SELECT * FROM users WHERE id = ?'
+    return db.execute(query, (id,))",SQL injection via string concatenation
+"import *
+from math import *",python,wildcard_import,1,"from math import sqrt, pi, floor",Wildcard import pollutes namespace
+"x = 0.1 + 0.2
+if x == 0.3:
+    print('equal')",python,float_comparison,1,"import math
+x = 0.1 + 0.2
+if math.isclose(x, 0.3):
+    print('equal')",Float equality comparison is unreliable
+"def read_file(path):
+    f = open(path)
+    data = f.read()
+    return data",python,unclosed_file,1,"def read_file(path):
+    with open(path) as f:
+        data = f.read()
+    return data",File not closed properly
+"nums = [1, 2, 3]
+nums[5]",python,index_error,1,"nums = [1, 2, 3]
+if len(nums) > 5:
+    print(nums[5])
+else:
+    print('Index out of range')",Index out of range
+"global counter
+counter = 0
+def increment():
+    global counter
+    counter += 1",python,global_variable,1,"def make_counter():
+    count = [0]
+    def increment():
+        count[0] += 1
+        return count[0]
+    return increment",Unnecessary global variable
+"import time
+def slow():
+    time.sleep(10)
+    return 'done'",python,blocking_sleep,1,"import asyncio
+async def slow():
+    await asyncio.sleep(10)
+    return 'done'",Blocking sleep in synchronous code
+"class Dog:
+    tricks = []
+    def add_trick(self, trick):
+        self.tricks.append(trick)",python,class_mutable,1,"class Dog:
+    def __init__(self):
+        self.tricks = []
+    def add_trick(self, trick):
+        self.tricks.append(trick)",Shared mutable class attribute
+"def square(x):
+    x * x",python,missing_return,1,"def square(x):
+    return x * x",Missing return statement
+print 'Hello World',python,syntax_py2,1,print('Hello World'),Python 2 print statement in Python 3
+"name = input('Name: ')
+sql = 'SELECT * FROM users WHERE name=%s' % name",python,sql_injection,1,"name = input('Name: ')
+sql = 'SELECT * FROM users WHERE name = ?'
+cursor.execute(sql, (name,))",SQL injection via % formatting
+"def connect():
+    import socket
+    s = socket.socket()
+    s.connect(('localhost', 8080))
+    return s",python,no_timeout,1,"def connect():
+    import socket
+    s = socket.socket()
+    s.settimeout(10)
+    s.connect(('localhost', 8080))
+    return s",Socket with no timeout
+"numbers = [3,1,4,1,5]
+numbers.sort()
+print(numbers[0])",python,none,0,"numbers = [3,1,4,1,5]
+numbers.sort()
+print(numbers[0])",Clean sorting and indexing
+"def greet(name):
+    return 'Hello, ' + name + '!'",python,none,0,"def greet(name):
+    return f'Hello, {name}!'",Clean greeting function (could use f-string)
+"for i in range(10):
+    pass",python,empty_loop,1,"# Remove empty loop or add logic
+for i in range(10):
+    process(i)",Empty loop body with no logic
+x = int('abc'),python,value_error,1,"try:
+    x = int('abc')
+except ValueError:
+    x = 0",Uncaught ValueError from int conversion
+"def power(base, exp):
+    result = 1
+    for _ in range(exp):
+        result *= base
+    return result",python,none,0,"def power(base, exp):
+    result = 1
+    for _ in range(exp):
+        result *= base
+    return result",Correct power function
+"import threading
+balance = 1000
+def withdraw(amount):
+    global balance
+    if balance >= amount:
+        balance -= amount",python,race_condition,1,"import threading
+balance = 1000
+lock = threading.Lock()
+def withdraw(amount):
+    global balance
+    with lock:
+        if balance >= amount:
+            balance -= amount",Race condition without lock
+"def find(lst, target):
+    for i, v in enumerate(lst):
+        if v == target:
+            return i",python,none,0,"def find(lst, target):
+    for i, v in enumerate(lst):
+        if v == target:
+            return i",Clean linear search
+"class Stack:
+    def __init__(self):
+        self.data = []
+    def push(self, item):
+        self.data.append(item)
+    def pop(self):
+        return self.data.pop()",python,none,0,"class Stack:
+    def __init__(self):
+        self.data = []
+    def push(self, item):
+        self.data.append(item)
+    def pop(self):
+        if not self.data:
+            raise IndexError('Stack is empty')
+        return self.data.pop()",Pop on empty stack not handled
+"String name = 'John';
+System.out.println(name);",java,syntax_error,1,"String name = ""John"";
+System.out.println(name);",Using single quotes for String in Java
+"String s = null;
+System.out.println(s.length());",java,null_pointer,1,"String s = null;
+if (s != null) {
+    System.out.println(s.length());
+}",NullPointerException risk
+"if (str == ""hello"") {
+    System.out.println(""match"");
+}",java,string_equality,1,"if (str.equals(""hello"")) {
+    System.out.println(""match"");
+}",Use .equals() not == for Strings
+"catch (Exception e) {
+    // ignore
+}",java,swallowed_exception,1,"catch (Exception e) {
+    logger.error(""Unexpected error"", e);
+    throw new RuntimeException(e);
+}",Exception swallowed silently
+"int[] arr = new int[5];
+System.out.println(arr[10]);",java,array_bounds,1,"int[] arr = new int[5];
+int index = 10;
+if (index < arr.length) {
+    System.out.println(arr[index]);
+}",ArrayIndexOutOfBoundsException
+"for (int i = 0; i <= arr.length; i++) {
+    System.out.println(arr[i]);
+}",java,off_by_one,1,"for (int i = 0; i < arr.length; i++) {
+    System.out.println(arr[i]);
+}",Off-by-one: <= should be <
+"public static int divide(int a, int b) {
+    return a / b;
+}",java,zero_division,1,"public static int divide(int a, int b) {
+    if (b == 0) throw new ArithmeticException(""Division by zero"");
+    return a / b;
+}",Integer division by zero
+"FileReader f = new FileReader(""file.txt"");
+String line = f.readLine();",java,unclosed_resource,1,"try (BufferedReader f = new BufferedReader(new FileReader(""file.txt""))) {
+    String line = f.readLine();
+} catch (IOException e) {
+    e.printStackTrace();
+}",Resource not closed
+"List list = new ArrayList();
+list.add(""hello"");",java,raw_type,1,"List<String> list = new ArrayList<>();
+list.add(""hello"");",Using raw type without generics
+"String result = """";
+for (String s : items) {
+    result += s;
+}",java,string_concat,1,"StringBuilder result = new StringBuilder();
+for (String s : items) {
+    result.append(s);
+}
+String finalResult = result.toString();",String concatenation in loop is O(n²)
+"int hash = 0;
+for (char c : str.toCharArray()) {
+    hash = hash * 31 + c;
+}",java,none,0,"int hash = 0;
+for (char c : str.toCharArray()) {
+    hash = hash * 31 + c;
+}",Correct custom hash function
+"public void run() {
+    while(true) {
+        doWork();
+    }
+}",java,infinite_loop,1,"public void run() {
+    while(!Thread.currentThread().isInterrupted()) {
+        doWork();
+    }
+}",Infinite loop ignores thread interruption
+"double result = 1 / 3;
+System.out.println(result);",java,int_division,1,"double result = 1.0 / 3;
+System.out.println(result);",Integer division truncates to 0.0
+public static List<Integer> cache = new ArrayList<>();,java,static_mutable,1,"// Use thread-safe structure
+public static final List<Integer> cache = Collections.synchronizedList(new ArrayList<>());",Static mutable field not thread-safe
+"var x = 5;
+var y = '5';
+if (x == y) console.log('equal');",javascript,loose_equality,1,"const x = 5;
+const y = '5';
+if (x === y) console.log('equal');",Loose equality coerces types
+eval('alert(1)'),javascript,eval_xss,1,"// Never use eval with dynamic content
+// Refactor logic to avoid eval entirely",eval() enables XSS attacks
+"var count = 0;
+function increment() { count++; }",javascript,var_scope,1,"let count = 0;
+function increment() { count++; }",var has function scope; use let/const
+document.getElementById('out').innerHTML = userInput;,javascript,xss,1,document.getElementById('out').textContent = userInput;,innerHTML with user input enables XSS
+"setTimeout('doSomething()', 1000);",javascript,string_timeout,1,"setTimeout(() => doSomething(), 1000);",String passed to setTimeout is evaled
+"function getUser(id) {
+    let user;
+    fetch('/api/users/' + id)
+        .then(r => r.json())
+        .then(data => { user = data; });
+    return user;
+}",javascript,async_error,1,"async function getUser(id) {
+    const response = await fetch('/api/users/' + id);
+    return await response.json();
+}",Async fetch result used synchronously
+"for (var i = 0; i < 5; i++) {
+    setTimeout(() => console.log(i), 100);
+}",javascript,closure_loop,1,"for (let i = 0; i < 5; i++) {
+    setTimeout(() => console.log(i), 100);
+}",var in loop closure captures same reference
+"const arr = [1,2,3];
+arr[10] = 5;",javascript,sparse_array,1,"const arr = [1,2,3];
+arr.push(5); // or extend properly",Sparse array with holes
+delete arr[2];,javascript,delete_array,1,"arr.splice(2, 1);",delete on array index leaves undefined hole
+"const obj = {};
+console.log(obj.user.name);",javascript,null_chain,1,"const obj = {};
+console.log(obj?.user?.name ?? 'unknown');",Accessing nested property on undefined object
+"with (obj) {
+    console.log(name);
+}",javascript,with_statement,1,"const { name } = obj;
+console.log(name);",with statement is forbidden in strict mode
+"function add(a, b) {
+    return a + b;
+}
+const result = add(1, '2');",javascript,type_coercion,1,"function add(a, b) {
+    if (typeof a !== 'number' || typeof b !== 'number') throw new TypeError('Expected numbers');
+    return a + b;
+}",Implicit type coercion in addition
+const data = JSON.parse(userInput);,javascript,unsafe_parse,1,"try {
+    const data = JSON.parse(userInput);
+} catch (e) {
+    console.error('Invalid JSON', e);
+}",Uncaught JSON parse error
+"fetch('/api/data')
+    .then(r => r.json())
+    .then(d => console.log(d));",javascript,no_error_handling,1,"fetch('/api/data')
+    .then(r => r.json())
+    .then(d => console.log(d))
+    .catch(err => console.error('Fetch failed', err));",Fetch with no error handling
+"const nums = [1,2,3,4,5];
+const doubled = nums.map(n => n * 2);
+console.log(doubled);",javascript,none,0,"const nums = [1,2,3,4,5];
+const doubled = nums.map(n => n * 2);
+console.log(doubled);",Clean map transformation
+"const square = n => n ** 2;
+console.log(square(4));",javascript,none,0,"const square = n => n ** 2;
+console.log(square(4));",Clean arrow function
+"async function loadData() {
+    const a = await fetchA();
+    const b = await fetchB();
+    return [a, b];
+}",javascript,sequential_await,1,"async function loadData() {
+    const [a, b] = await Promise.all([fetchA(), fetchB()]);
+    return [a, b];
+}",Sequential awaits that could run in parallel
+"let x;
+console.log(x + 1);",javascript,undefined_use,1,"let x = 0;
+console.log(x + 1);",Using undefined variable in arithmetic
+"const password = 'supersecret123';
+localStorage.setItem('pwd', password);",javascript,insecure_storage,1,"// Never store passwords in localStorage
+// Use httpOnly cookies or session tokens instead",Password stored in localStorage
+"function riskyOp() {
+    throw new Error('oops');
+}
+riskyOp();",javascript,unhandled_error,1,"function riskyOp() {
+    throw new Error('oops');
+}
+try {
+    riskyOp();
+} catch (e) {
+    console.error(e.message);
+}",Unhandled thrown error
+"def merge_sort(arr):
+    if len(arr) <= 1:
+        return arr
+    mid = len(arr) // 2
+    left = merge_sort(arr[:mid])
+    right = merge_sort(arr[mid:])
+    return merge(left, right)
+
+def merge(l, r):
+    result = []
+    i = j = 0
+    while i < len(l) and j < len(r):
+        if l[i] < r[j]:
+            result.append(l[i]); i += 1
+        else:
+            result.append(r[j]); j += 1
+    result.extend(l[i:])
+    result.extend(r[j:])
+    return result",python,none,0,"def merge_sort(arr):
+    if len(arr) <= 1:
+        return arr
+    mid = len(arr) // 2
+    left = merge_sort(arr[:mid])
+    right = merge_sort(arr[mid:])
+    return merge(left, right)
+
+def merge(l, r):
+    result = []
+    i = j = 0
+    while i < len(l) and j < len(r):
+        if l[i] < r[j]:
+            result.append(l[i]); i += 1
+        else:
+            result.append(r[j]); j += 1
+    result.extend(l[i:])
+    result.extend(r[j:])
+    return result",Correct merge sort implementation
+"def binary_search(arr, target):
+    lo, hi = 0, len(arr)
+    while lo < hi:
+        mid = (lo + hi) // 2
+        if arr[mid] == target:
+            return mid
+        elif arr[mid] < target:
+            lo = mid + 1
+        else:
+            hi = mid
+    return -1",python,none,0,"def binary_search(arr, target):
+    lo, hi = 0, len(arr)
+    while lo < hi:
+        mid = (lo + hi) // 2
+        if arr[mid] == target:
+            return mid
+        elif arr[mid] < target:
+            lo = mid + 1
+        else:
+            hi = mid
+    return -1",Correct binary search
+"public int binarySearch(int[] arr, int target) {
+    int lo = 0, hi = arr.length - 1;
+    while (lo <= hi) {
+        int mid = lo + (hi - lo) / 2;
+        if (arr[mid] == target) return mid;
+        if (arr[mid] < target) lo = mid + 1;
+        else hi = mid - 1;
+    }
+    return -1;
+}",java,none,0,"public int binarySearch(int[] arr, int target) {
+    int lo = 0, hi = arr.length - 1;
+    while (lo <= hi) {
+        int mid = lo + (hi - lo) / 2;
+        if (arr[mid] == target) return mid;
+        if (arr[mid] < target) lo = mid + 1;
+        else hi = mid - 1;
+    }
+    return -1;
+}",Correct binary search in Java
+"def get_env():
+    return os.getenv('API_KEY')",python,none,0,"def get_env():
+    return os.getenv('API_KEY')",Correct env variable access
+const API_KEY = process.env.API_KEY;,javascript,none,0,const API_KEY = process.env.API_KEY;,Correct env variable in JS
+int mid = (lo + hi) / 2;,java,integer_overflow,1,int mid = lo + (hi - lo) / 2;,Integer overflow in midpoint calculation
+"def connect_db():
+    conn = psycopg2.connect(dsn)
+    return conn",python,no_pooling,1,"from psycopg2 import pool
+connection_pool = pool.SimpleConnectionPool(1, 10, dsn)
+def connect_db():
+    return connection_pool.getconn()",No connection pooling
+"const handleClick = () => {
+    for(let i = 0; i < 1000000; i++) {
+        document.querySelectorAll('.item');
+    }
+}",javascript,dom_in_loop,1,"const items = document.querySelectorAll('.item');
+const handleClick = () => {
+    for(let i = 0; i < 1000000; i++) {
+        // use items
+    }
+}",Repeated DOM query inside loop
+"def read_csv(path):
+    with open(path) as f:
+        return [line.split(',') for line in f]",python,none,0,"import csv
+def read_csv(path):
+    with open(path, newline='') as f:
+        reader = csv.reader(f)
+        return list(reader)",Manual CSV parsing mishandles quoted fields
+"public boolean isPrime(int n) {
+    for (int i = 2; i < n; i++) {
+        if (n % i == 0) return false;
+    }
+    return true;
+}",java,inefficient,1,"public boolean isPrime(int n) {
+    if (n < 2) return false;
+    for (int i = 2; i <= Math.sqrt(n); i++) {
+        if (n % i == 0) return false;
+    }
+    return true;
+}",O(n) prime check instead of O(sqrt n)
+"def is_prime(n):
+    for i in range(2, n):
+        if n % i == 0:
+            return False
+    return True",python,inefficient,1,"def is_prime(n):
+    if n < 2: return False
+    for i in range(2, int(n**0.5) + 1):
+        if n % i == 0:
+            return False
+    return True",O(n) prime check instead of O(sqrt n)
+SELECT * FROM users;,python,select_star,1,"SELECT id, name, email FROM users;",SELECT * fetches unnecessary columns
+UPDATE users SET active=1;,python,missing_where,1,UPDATE users SET active=1 WHERE id = ?;,UPDATE without WHERE affects all rows
+DELETE FROM orders;,python,missing_where,1,DELETE FROM orders WHERE created_at < '2020-01-01';,DELETE without WHERE wipes entire table
+"def cache_result(key, func):
+    if key not in cache:
+        cache[key] = func()
+    return cache[key]",python,none,0,"def cache_result(key, func):
+    if key not in cache:
+        cache[key] = func()
+    return cache[key]",Simple memoization cache
+"function debounce(fn, delay) {
+    let timer;
+    return function(...args) {
+        clearTimeout(timer);
+        timer = setTimeout(() => fn.apply(this, args), delay);
+    };
+}",javascript,none,0,"function debounce(fn, delay) {
+    let timer;
+    return function(...args) {
+        clearTimeout(timer);
+        timer = setTimeout(() => fn.apply(this, args), delay);
+    };
+}",Correct debounce implementation
+"def flatten(lst):
+    result = []
+    for item in lst:
+        if isinstance(item, list):
+            result.extend(flatten(item))
+        else:
+            result.append(item)
+    return result",python,none,0,"def flatten(lst):
+    result = []
+    for item in lst:
+        if isinstance(item, list):
+            result.extend(flatten(item))
+        else:
+            result.append(item)
+    return result",Correct recursive flatten
+"class Singleton:
+    _instance = None
+    def __new__(cls):
+        if cls._instance is None:
+            cls._instance = super().__new__(cls)
+        return cls._instance",python,none,0,"class Singleton:
+    _instance = None
+    def __new__(cls):
+        if cls._instance is None:
+            cls._instance = super().__new__(cls)
+        return cls._instance",Correct singleton pattern
+"def quicksort(arr):
+    if len(arr) <= 1:
+        return arr
+    pivot = arr[0]
+    left = [x for x in arr[1:] if x <= pivot]
+    right = [x for x in arr[1:] if x > pivot]
+    return quicksort(left) + [pivot] + quicksort(right)",python,none,0,"def quicksort(arr):
+    if len(arr) <= 1:
+        return arr
+    pivot = arr[0]
+    left = [x for x in arr[1:] if x <= pivot]
+    right = [x for x in arr[1:] if x > pivot]
+    return quicksort(left) + [pivot] + quicksort(right)",Correct quicksort
+"import hashlib
+def hash_password(pwd):
+    return hashlib.md5(pwd.encode()).hexdigest()",python,weak_hash,1,"import bcrypt
+def hash_password(pwd):
+    return bcrypt.hashpw(pwd.encode(), bcrypt.gensalt())",MD5 is broken for passwords; use bcrypt
+const token = btoa(username + ':' + password);,javascript,weak_auth,1,"// Use proper OAuth2 or JWT authentication
+// Never encode credentials in base64 for auth",Base64 is not encryption; not secure for auth
+"def send_email(to, body):
+    os.system('sendmail ' + to + ' ' + body)",python,command_injection,1,"import smtplib
+def send_email(to, body):
+    with smtplib.SMTP('localhost') as s:
+        s.sendmail('from@example.com', [to], body)",Command injection via os.system
+"int[] counts = new int[26];
+for (char c : s.toCharArray()) {
+    counts[c - 'a']++;
+}",java,none,0,"int[] counts = new int[26];
+for (char c : s.toCharArray()) {
+    counts[c - 'a']++;
+}",Correct character frequency count
+"const result = items.reduce((acc, item) => {
+    acc[item.id] = item;
+    return acc;
+}, {});",javascript,none,0,"const result = items.reduce((acc, item) => {
+    acc[item.id] = item;
+    return acc;
+}, {});",Correct reduce to build lookup map
+"def retry(func, attempts=3):
+    for i in range(attempts):
+        try:
+            return func()
+        except Exception:
+            if i == attempts - 1:
+                raise",python,none,0,"def retry(func, attempts=3):
+    for i in range(attempts):
+        try:
+            return func()
+        except Exception:
+            if i == attempts - 1:
+                raise",Correct retry logic
+"public Map<String, Integer> wordCount(String text) {
+    Map<String, Integer> map = new HashMap<>();
+    for (String word : text.split("" "")) {
+        map.put(word, map.getOrDefault(word, 0) + 1);
+    }
+    return map;
+}",java,none,0,"public Map<String, Integer> wordCount(String text) {
+    Map<String, Integer> map = new HashMap<>();
+    for (String word : text.split("" "")) {
+        map.put(word, map.getOrDefault(word, 0) + 1);
+    }
+    return map;
+}",Correct word count with getOrDefault
+"def load_json(path):
+    with open(path) as f:
+        return json.load(f)",python,none,0,"def load_json(path):
+    with open(path) as f:
+        return json.load(f)",Correct JSON loading
+"async function fetchAll(urls) {
+    const results = await Promise.all(urls.map(url => fetch(url)));
+    return results.map(r => r.json());
+}",javascript,none,0,"async function fetchAll(urls) {
+    const results = await Promise.all(urls.map(url => fetch(url)));
+    return Promise.all(results.map(r => r.json()));
+}",Missing await on .json() promises
+"def generate_id():
+    import random
+    return random.randint(1000, 9999)",python,weak_random,1,"import secrets
+def generate_id():
+    return secrets.token_hex(8)",random module is not cryptographically secure
+"var xhr = new XMLHttpRequest();
+xhr.open('GET', url, false);
+xhr.send();",javascript,sync_xhr,1,"fetch(url)
+    .then(r => r.json())
+    .then(data => console.log(data))
+    .catch(console.error);",Synchronous XHR blocks the UI thread
+"def count_words(text):
+    return len(text.split())",python,none,0,"def count_words(text):
+    return len(text.split())",Correct word counter
+"public static void swap(int a, int b) {
+    int temp = a;
+    a = b;
+    b = temp;
+}",java,pass_by_value,1,"public static int[] swap(int[] arr, int i, int j) {
+    int temp = arr[i];
+    arr[i] = arr[j];
+    arr[j] = temp;
+    return arr;
+}",Java passes primitives by value; swap has no effect
+"nums = list(range(1000000))
+evens = [x for x in nums if x % 2 == 0]",python,memory_list,1,"nums = range(1000000)
+evens = (x for x in nums if x % 2 == 0)",Builds entire list in memory; use generator
+"function sum(arr) {
+    let total = 0;
+    arr.forEach(n => total += n);
+    return total;
+}",javascript,none,0,"function sum(arr) {
+    return arr.reduce((acc, n) => acc + n, 0);
+}",Can be simplified with reduce
+"def celsius_to_fahrenheit(c):
+    return c * 9/5 + 32",python,none,0,"def celsius_to_fahrenheit(c):
+    return c * 9/5 + 32",Correct temperature conversion
+const unique = [...new Set(arr)];,javascript,none,0,const unique = [...new Set(arr)];,Correct deduplication with Set
+"SELECT u.name, o.total FROM users u, orders o WHERE u.id = o.user_id",python,implicit_join,1,"SELECT u.name, o.total FROM users u INNER JOIN orders o ON u.id = o.user_id",Implicit join; use explicit INNER JOIN
+"class Node:
+    def __init__(self, val):
+        self.val = val
+        self.next = None",python,none,0,"class Node:
+    def __init__(self, val):
+        self.val = val
+        self.next = None",Correct linked list node
+"def safe_divide(a, b):
+    return a // b",python,zero_division,1,"def safe_divide(a, b):
+    if b == 0:
+        return None
+    return a // b",Integer floor division without zero guard
+result = [x**2 for x in range(10)],python,none,0,result = [x**2 for x in range(10)],Clean list comprehension
+"import pickle
+obj = pickle.loads(user_data)",python,insecure_deserialize,1,"import json
+obj = json.loads(user_data)",pickle.loads on untrusted data enables RCE
+"def append_all(items, target=[]):
+    target.extend(items)
+    return target",python,mutable_default,1,"def append_all(items, target=None):
+    if target is None:
+        target = []
+    target.extend(items)
+    return target",Mutable default list accumulates across calls
+"import subprocess
+cmd = 'ls ' + user_input
+subprocess.run(cmd, shell=True)",python,command_injection,1,"import subprocess
+subprocess.run(['ls', user_input], shell=False)",shell=True with user input allows command injection
+"assert user_input != '', 'Input required'",python,assert_removed,1,"if not user_input:
+    raise ValueError('Input required')",assert can be disabled with -O flag
+"for key in dict.keys():
+    print(key)",python,antipattern,1,"for key in dict:
+    print(key)",Unnecessary .keys() call
+"if type(x) == int:
+    pass",python,antipattern,1,"if isinstance(x, int):
+    pass",Use isinstance() not type() ==
+"def read_lines(path):
+    return open(path).readlines()",python,unclosed_file,1,"def read_lines(path):
+    with open(path) as f:
+        return f.readlines()",File handle never closed
+"n = len(s)
+for i in range(n):
+    for j in range(n):
+        check(s[i], s[j])",python,inefficient,1,"from itertools import product
+for a, b in product(s, s):
+    check(a, b)",O(n²) nested loop
+"import hashlib
+def hash_password(p):
+    return hashlib.md5(p.encode()).hexdigest()",python,weak_hash,1,"import bcrypt
+def hash_password(p):
+    return bcrypt.hashpw(p.encode(), bcrypt.gensalt())",MD5 is broken for passwords
+"def generate_token():
+    import random
+    return str(random.randint(100000, 999999))",python,weak_random,1,"import secrets
+def generate_token():
+    return secrets.token_hex(16)",random module is not cryptographically secure
+"data = []
+for item in source:
+    data.append(transform(item))",python,antipattern,1,data = [transform(item) for item in source],Manual append loop; use list comprehension
+"nums = list(range(1000000))
+evens = [x for x in nums if x % 2 == 0]",python,memory_list,1,evens = (x for x in range(1000000) if x % 2 == 0),Builds entire list in memory; use generator
+int result = Integer.parseInt(userInput);,java,uncaught_exception,1,"int result;
+try {
+    result = Integer.parseInt(userInput);
+} catch (NumberFormatException e) {
+    result = 0;
+}",parseInt throws uncaught NumberFormatException
+"public void processAll(List<String> items) {
+    for (int i = 0; i <= items.size(); i++) {
+        process(items.get(i));
+    }
+}",java,off_by_one,1,"public void processAll(List<String> items) {
+    for (int i = 0; i < items.size(); i++) {
+        process(items.get(i));
+    }
+}",Off-by-one IndexOutOfBoundsException
+"Optional<User> user = repo.findById(id);
+System.out.println(user.get().getName());",java,optional_misuse,1,"Optional<User> user = repo.findById(id);
+user.ifPresent(u -> System.out.println(u.getName()));",Optional.get() without isPresent check
+"Map<String,String> m = new HashMap<>();
+String val = m.get(""missing"").toUpperCase();",java,null_pointer,1,"Map<String,String> m = new HashMap<>();
+String val = m.getOrDefault(""missing"", """").toUpperCase();",map.get returns null for missing key
+"const users = await db.query('SELECT * FROM users WHERE name = ""' + name + '""');",javascript,sql_injection,1,"const users = await db.query('SELECT * FROM users WHERE name = $1', [name]);",SQL injection via string concatenation
+"const sum = arr.reduce((a, b) => a + b);",javascript,no_initial_value,1,"const sum = arr.reduce((a, b) => a + b, 0);",reduce without initial value throws on empty array
+const regex = new RegExp(userInput);,javascript,redos,1,"const escaped = userInput.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\\\$&');
+const regex = new RegExp(escaped);",Unescaped user input in RegExp allows ReDoS
+"element.addEventListener('click', () => {
+  element.addEventListener('click', handler);
+});",javascript,event_leak,1,"element.addEventListener('click', handler);",Nested addEventListener adds duplicate listeners
+const clone = JSON.parse(JSON.stringify(obj));,javascript,none,0,const clone = structuredClone(obj);,JSON clone loses non-serialisable values
+const API_KEY = 'sk-abc123';,javascript,hardcoded_secret,1,const API_KEY = process.env.API_KEY;,Hardcoded API key in source
+"var xhr = new XMLHttpRequest();
+xhr.open('GET', url, false);
+xhr.send();",javascript,sync_xhr,1,"const res = await fetch(url);
+const data = await res.json();",Synchronous XHR blocks the UI thread

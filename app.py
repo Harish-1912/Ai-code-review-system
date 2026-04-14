@@ -9,6 +9,7 @@ HTML = r"""
 <html lang="en" data-theme="dark">
 <head>
 <meta charset="UTF-8">
+<meta name="google-site-verification" content="36sRSLEbYk3ZaYUam-VCQzh9aazXBdnGXtfa9RdxAME" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Anchor Elite AI | Neural Code Review</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>

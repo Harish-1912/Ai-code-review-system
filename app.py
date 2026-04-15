@@ -1,8 +1,13 @@
 from flask import Flask, render_template_string, request, jsonify
 from code_analyzer import analyze_logic
 import re, os
+from flask import Flask, send_file
 
 app = Flask(__name__)
+
+@app.route('/robots.txt')
+def robots():
+    return send_file('robots.txt')
 
 HTML = r"""
 <!DOCTYPE html>

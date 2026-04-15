@@ -1272,5 +1272,5 @@ from flask import send_from_directory
 import os
 
 @app.route('/robots.txt')
-def robots():
+def robots_txt():
     return send_from_directory(os.path.dirname(__file__), 'robots.txt')

@@ -257,21 +257,23 @@ body {
 
 /* ── Code area fills panel ── */
 .code-area {
-  flex: 1; display: flex; overflow: hidden; min-height: 0;
+  flex: 1; display: flex; flex-direction: row; overflow: hidden; min-height: 0;
 }
 .line-nums {
-  padding: 10px 0 10px 10px; color: var(--muted2);
+  padding: 10px 6px 10px 10px; color: var(--muted2);
   font-family: 'JetBrains Mono', monospace; font-size: 12px; line-height: 20px;
-  text-align: right; user-select: none; min-width: 38px; flex-shrink: 0; overflow: hidden;
+  text-align: right; user-select: none; min-width: 42px; flex-shrink: 0;
+  overflow: hidden; white-space: pre;
 }
-.code-scroll-inner { flex: 1; overflow: auto; display: flex; }
+.code-scroll-inner { flex: 1; overflow: auto; display: flex; min-height: 0; }
 .code-scroll-inner::-webkit-scrollbar { width: 3px; height: 3px; }
 .code-scroll-inner::-webkit-scrollbar-thumb { background: rgba(128,128,128,.15); border-radius: 4px; }
 textarea.code-input {
   flex: 1; background: transparent; border: none; outline: none; resize: none;
   color: var(--code-color); font-family: 'JetBrains Mono', monospace;
-  font-size: 12px; line-height: 20px; padding: 10px 14px 10px 8px;
-  caret-color: var(--purple); width: 100%; height: 100%;
+  font-size: 12px; line-height: 20px; padding: 10px 14px 10px 6px;
+  caret-color: var(--purple); width: 100%; min-width: 100%;
+  white-space: pre; overflow-wrap: normal; overflow: auto;
   transition: color .3s;
 }
 textarea.code-input::placeholder { color: var(--muted2); }
@@ -500,17 +502,132 @@ textarea.code-input::placeholder { color: var(--muted2); }
 .modal-backdrop-side.open { display: block; }
 
 /* ══════════════════════════════════════════════════════
-   NOTIFICATIONS BADGE
+   REFACTOR TIP PANEL
 ══════════════════════════════════════════════════════ */
-.notif-badge {
-  position: relative;
+.tip-step {
+  display: flex; gap: 10px; margin-bottom: 8px; align-items: flex-start;
 }
-.notif-badge::after {
-  content: ''; position: absolute; top: 5px; right: 5px;
-  width: 7px; height: 7px; border-radius: 50%;
-  background: var(--rose); border: 1px solid var(--surface);
+.tip-step-bullet {
+  color: var(--purple); font-weight: 700; flex-shrink: 0; margin-top: 1px; font-size: 14px;
 }
-</style>
+.tip-code-block {
+  background: var(--bg); border: 1px solid var(--border2); border-radius: 10px;
+  padding: 12px 14px; font-family: 'JetBrains Mono', monospace; font-size: 11px;
+  line-height: 1.7; color: var(--code-color); overflow-x: auto;
+  white-space: pre; word-break: normal; margin-top: 4px;
+}
+.tip-section-label {
+  font-size: 10px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .08em; color: var(--muted); margin-bottom: 8px; margin-top: 16px;
+}
+.tip-section-label:first-child { margin-top: 0; }
+.tip-what {
+  font-size: 13px; color: var(--text2); line-height: 1.6;
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: 10px; padding: 12px 14px;
+}
+.tip-why {
+  font-size: 13px; color: var(--text2); line-height: 1.6;
+  background: rgba(168,85,247,.06); border: 1px solid rgba(168,85,247,.15);
+  border-radius: 10px; padding: 12px 14px;
+}
+.tip-analyze-btn {
+  width: 100%; padding: 10px; border-radius: 9px;
+  background: var(--purple); color: white; font-size: 13px; font-weight: 600;
+  border: none; cursor: pointer; margin-top: 18px;
+  font-family: 'Inter', sans-serif; transition: background .2s;
+}
+.tip-analyze-btn:hover { background: var(--purple-bright); }
+
+/* ══════════════════════════════════════════════════════
+   MOBILE RESPONSIVE
+══════════════════════════════════════════════════════ */
+@media (max-width: 768px) {
+  /* Body scrollable on mobile */
+  body { overflow-y: auto; overflow-x: hidden; flex-direction: column; height: auto; min-height: 100vh; }
+
+  /* Hide sidebar on mobile — use bottom nav instead */
+  .sidebar { display: none; }
+
+  /* Main takes full width */
+  .main { width: 100%; overflow: visible; }
+
+  /* Topbar wraps on mobile */
+  .topbar {
+    height: auto; min-height: 52px; flex-wrap: wrap;
+    padding: 8px 12px; gap: 6px;
+  }
+  .topbar-logo { font-size: 14px; }
+  .sep { display: none; }
+  .lang-group { order: 3; width: 100%; justify-content: center; padding: 4px 0 2px; }
+  .lang-btn { padding: 5px 10px; font-size: 11px; }
+  .convert-btn { font-size: 11px; padding: 5px 10px; }
+  .topbar-right { gap: 6px; }
+  .icon-btn { width: 28px; height: 28px; font-size: 13px; }
+  .avatar { width: 28px; height: 28px; font-size: 11px; }
+
+  /* Content scrollable */
+  .content { overflow-y: auto; overflow-x: hidden; }
+
+  /* Analyse page stacks vertically */
+  .analyse-page { padding: 10px; gap: 10px; overflow: visible; flex: none; }
+
+  /* Stats row scrolls horizontally */
+  .stats-row { overflow-x: auto; flex-wrap: nowrap; padding-bottom: 4px; gap: 8px; }
+  .stats-row::-webkit-scrollbar { height: 3px; }
+  .stats-row::-webkit-scrollbar-thumb { background: rgba(128,128,128,.2); border-radius: 4px; }
+  .health-card { min-width: 180px; width: 180px; padding: 10px 12px; }
+  .stat-card { min-width: 90px; padding: 10px 12px; }
+  .stat-num { font-size: 20px; }
+
+  /* Panels stack vertically */
+  .panels-row { flex-direction: column; gap: 10px; flex: none; min-height: 0; }
+  .panel { min-height: 280px; flex: none; }
+  .panel[style*="flex:1.1"] { flex: none !important; min-height: 240px; }
+
+  /* Code area fixed height on mobile */
+  .code-area { min-height: 200px; }
+  textarea.code-input { font-size: 11px; }
+  .line-nums { font-size: 11px; min-width: 36px; }
+
+  /* Refactors wrap to 2 columns */
+  .refactors-row { flex-wrap: wrap; gap: 8px; }
+  .refactor-card { min-width: calc(50% - 4px); flex: none; padding: 8px 10px; }
+  .ri-title { font-size: 11px; }
+  .ri-sub { display: none; }
+
+  /* Side modals full width on mobile */
+  .side-modal { width: 100%; right: -100%; }
+  .modal-card { min-width: unset; width: calc(100vw - 40px); margin: 0 20px; }
+
+  /* Fault panel */
+  .fault-panel { padding: 8px 12px; }
+  .fault-body { max-height: 120px; font-size: 10px; }
+
+  /* Bottom mobile nav bar */
+  .mobile-nav {
+    display: flex; position: fixed; bottom: 0; left: 0; right: 0;
+    background: var(--surface); border-top: 1px solid var(--border);
+    padding: 8px 0 calc(8px + env(safe-area-inset-bottom));
+    z-index: 100; justify-content: space-around; align-items: center;
+  }
+  .mobile-nav-btn {
+    display: flex; flex-direction: column; align-items: center; gap: 3px;
+    color: var(--muted); cursor: pointer; padding: 4px 12px;
+    font-size: 10px; transition: color .2s;
+  }
+  .mobile-nav-btn.active { color: var(--purple); }
+  .mobile-nav-btn span:first-child { font-size: 18px; }
+
+  /* Extra bottom padding so content isn't hidden under nav */
+  .analyse-page { padding-bottom: 72px; }
+}
+
+/* Show mobile nav only on mobile */
+.mobile-nav { display: none; }
+@media (max-width: 768px) {
+  .mobile-nav { display: flex; }
+}
 </head>
 <body>
 
@@ -712,6 +829,38 @@ textarea.code-input::placeholder { color: var(--muted2); }
 </div>
 
 <!-- ══════════════════════════════════════════════════════
+     REFACTOR TIP SIDE PANEL
+══════════════════════════════════════════════════════ -->
+<div class="side-modal" id="sideRefactorTip">
+  <div class="side-modal-header">
+    <span class="side-modal-title" id="tipPanelTitle">Refactor Guide</span>
+    <button class="side-modal-close" onclick="closeSideModal('sideRefactorTip')">✕</button>
+  </div>
+  <div class="side-modal-body" id="tipPanelBody"></div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════
+     MOBILE BOTTOM NAV
+══════════════════════════════════════════════════════ -->
+<div class="mobile-nav">
+  <div class="mobile-nav-btn active" id="mnav-analyse" onclick="mobileNav('analyse')">
+    <span>⊞</span><span>Analyse</span>
+  </div>
+  <div class="mobile-nav-btn" id="mnav-history" onclick="mobileNav('history')">
+    <span>⏱</span><span>History</span>
+  </div>
+  <div class="mobile-nav-btn" id="mnav-reports" onclick="mobileNav('reports')">
+    <span>📊</span><span>Reports</span>
+  </div>
+  <div class="mobile-nav-btn" id="mnav-docs" onclick="mobileNav('docs')">
+    <span>📖</span><span>Docs</span>
+  </div>
+  <div class="mobile-nav-btn" id="mnav-settings" onclick="mobileNav('settings')">
+    <span>⚙</span><span>Settings</span>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════
      SIDEBAR
 ══════════════════════════════════════════════════════ -->
 <div class="sidebar">
@@ -808,7 +957,8 @@ textarea.code-input::placeholder { color: var(--muted2); }
               <div class="code-scroll-inner">
                 <textarea name="code" id="codeInput" class="code-input"
                   placeholder="// Paste your code here...&#10;// Ctrl+Enter to analyse"
-                  oninput="syncLines(this);updateStats(this)">{{ code }}</textarea>
+                  oninput="syncLines(this);updateStats(this)"
+                  onscroll="document.getElementById('lineNums').scrollTop=this.scrollTop">{{ code }}</textarea>
               </div>
             </div>
             <div class="panel-actions">
@@ -1105,20 +1255,98 @@ function clearCode() {
 }
 
 // ── Refactor card actions ────────────────────────────
+const refactorTips = {
+  decouple: {
+    title: '🔗 Decouple API Logic',
+    what: 'Separates route definitions from business logic so each can change independently without breaking the other.',
+    why: 'Tightly coupled code is hard to test, reuse, and maintain. When routes and logic are mixed, a small change can break everything.',
+    steps: [
+      'Move all URL/route strings into a constants dict at the top of the file.',
+      'Create pure service functions that handle logic — routes just call them.',
+      'Pass dependencies (DB, config) as arguments instead of importing globals.',
+      'Each function should do one thing: validate, process, or respond.',
+    ],
+    example: '# BEFORE — logic mixed with routing\n@app.route("/users")\ndef get_users():\n    db = connect_db()\n    return jsonify(db.query("SELECT * FROM users"))\n\n# AFTER — decoupled\nROUTES = {"users": "/users"}\n\ndef fetch_users(db):\n    return db.query("SELECT * FROM users")\n\n@app.route(ROUTES["users"])\ndef get_users():\n    return jsonify(fetch_users(get_db()))',
+  },
+  lazy: {
+    title: '✦ Lazy Load Modules',
+    what: 'Delays importing heavy libraries until they are actually needed at runtime, not at startup.',
+    why: 'Top-level imports of large libraries (torch, sklearn, numpy) run every cold start, slowing down every request — even ones that never use ML.',
+    steps: [
+      'Move heavy imports inside the function that uses them.',
+      'Cache the module in a module-level variable after first load.',
+      'Use importlib.import_module() for fully dynamic loading.',
+      'Apply to any import that adds >50ms to startup time.',
+    ],
+    example: '# BEFORE — slow startup, always loads torch\nimport torch\n\ndef predict(data):\n    return torch.tensor(data)\n\n# AFTER — fast startup, loads only when called\n_torch = None\n\ndef predict(data):\n    global _torch\n    if _torch is None:\n        import torch\n        _torch = torch\n    return _torch.tensor(data)',
+  },
+  sanitize: {
+    title: '🛡 Sanitize Inputs',
+    what: 'Validates and cleans all user-supplied data before it touches your database, shell commands, or HTML output.',
+    why: 'SQL injection, XSS, and command injection are the #1 cause of data breaches. All exploit unsanitized user input.',
+    steps: [
+      'Never concatenate user input into SQL — use parameterized queries.',
+      'Use allowlists (accept known-good) not denylists (block known-bad).',
+      'Escape HTML characters before rendering any user content.',
+      'Use subprocess.run(list, shell=False) instead of shell=True.',
+    ],
+    example: '# BEFORE — SQL injection risk\nquery = "SELECT * FROM users WHERE name=\'" + name + "\'"\ncursor.execute(query)\n\n# BEFORE — XSS risk\nreturn f"<h1>Hello {username}</h1>"\n\n# AFTER — safe parameterized query\ncursor.execute("SELECT * FROM users WHERE name=%s", (name,))\n\n# AFTER — escaped HTML output\nfrom html import escape\nreturn f"<h1>Hello {escape(username)}</h1>"',
+  },
+};
+
 function applyRefactor(type) {
-  if (type === 'convert') {
-    openConvert();
-    return;
+  if (type === 'convert') { openConvert(); return; }
+  const tip = refactorTips[type];
+  if (!tip) return;
+
+  document.getElementById('tipPanelTitle').textContent = tip.title;
+
+  const stepsHtml = tip.steps.map(s =>
+    `<div class="tip-step"><span class="tip-step-bullet">›</span><span style="font-size:13px;color:var(--text2);line-height:1.5">${s}</span></div>`
+  ).join('');
+
+  document.getElementById('tipPanelBody').innerHTML = `
+    <div class="tip-section-label">What it does</div>
+    <div class="tip-what">${tip.what}</div>
+    <div class="tip-section-label">Why it matters</div>
+    <div class="tip-why">${tip.why}</div>
+    <div class="tip-section-label">How to apply</div>
+    ${stepsHtml}
+    <div class="tip-section-label">Example</div>
+    <div class="tip-code-block">${tip.example}</div>
+    <button class="tip-analyze-btn" onclick="runAndClose()">⚡ Analyze My Code Now</button>
+  `;
+  openSideModal('sideRefactorTip');
+}
+
+function runAndClose() {
+  const code = document.getElementById('codeInput').value.trim();
+  if (!code) { alert('Paste some code in the editor first.'); return; }
+  closeSideModal('sideRefactorTip');
+  document.getElementById('mainForm').submit();
+}
+
+// ── Mobile nav ────────────────────────────────────────
+function mobileNav(section) {
+  // Update active state
+  document.querySelectorAll('.mobile-nav-btn').forEach(b => b.classList.remove('active'));
+  const btn = document.getElementById('mnav-' + section);
+  if (btn) btn.classList.add('active');
+
+  // Close any open side modals first
+  closeAllSideModals();
+
+  if (section === 'analyse') {
+    // Nothing to open — just close panels
+  } else if (section === 'history') {
+    openSideModal('sideHistory');
+  } else if (section === 'reports') {
+    openSideModal('sideReports');
+  } else if (section === 'docs') {
+    openSideModal('sideDocs');
+  } else if (section === 'settings') {
+    openSideModal('sideSettings');
   }
-  const ta = document.getElementById('codeInput');
-  const code = ta.value.trim();
-  if (!code) {
-    // Show tooltip-style feedback
-    alert('Paste some code first, then click a refactor card.');
-    return;
-  }
-  // Trigger analyze with current code
-  document.getElementById('mainForm').dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }));
 }
 
 // ── Convert modal ─────────────────────────────────────

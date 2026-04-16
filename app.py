@@ -8,9 +8,6 @@ app = Flask(__name__)
 @app.route('/robots.txt')
 def robots():
     return send_file('robots.txt')
-@app.route('/')
-def home():
-    return HTML
 
 HTML = r"""
 <!DOCTYPE html>

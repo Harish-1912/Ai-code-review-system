@@ -557,11 +557,15 @@ textarea.code-input::placeholder { color: var(--muted2); }
     height: auto; min-height: 52px; flex-wrap: wrap;
     padding: 8px 12px; gap: 6px;
   }
-  .topbar-logo { font-size: 14px; }
+  .topbar-logo { font-size: 13px; }
   .sep { display: none; }
-  .lang-group { order: 3; width: 100%; justify-content: center; padding: 4px 0 2px; }
-  .lang-btn { padding: 5px 10px; font-size: 11px; }
-  .convert-btn { font-size: 11px; padding: 5px 10px; }
+  /* Mode tabs take full row on mobile */
+  .mode-tabs { order: 3; width: 100%; justify-content: center; }
+  .mode-tab { flex: 1; justify-content: center; font-size: 11px; padding: 5px 8px; }
+  /* Lang group scrolls horizontally */
+  .lang-group { order: 4; width: 100%; justify-content: center; padding: 4px 0 2px; overflow-x: auto; flex-wrap: nowrap; }
+  .lang-btn { padding: 4px 9px; font-size: 11px; white-space: nowrap; flex-shrink: 0; }
+  .convert-btn { font-size: 11px; padding: 5px 10px; order: 5; }
   .topbar-right { gap: 6px; }
   .icon-btn { width: 28px; height: 28px; font-size: 13px; }
   .avatar { width: 28px; height: 28px; font-size: 11px; }
@@ -576,17 +580,17 @@ textarea.code-input::placeholder { color: var(--muted2); }
   .stats-row { overflow-x: auto; flex-wrap: nowrap; padding-bottom: 4px; gap: 8px; }
   .stats-row::-webkit-scrollbar { height: 3px; }
   .stats-row::-webkit-scrollbar-thumb { background: rgba(128,128,128,.2); border-radius: 4px; }
-  .health-card { min-width: 180px; width: 180px; padding: 10px 12px; }
-  .stat-card { min-width: 90px; padding: 10px 12px; }
+  .health-card { min-width: 160px; width: 160px; padding: 10px 12px; }
+  .stat-card { min-width: 80px; padding: 10px 12px; }
   .stat-num { font-size: 20px; }
 
   /* Panels stack vertically */
   .panels-row { flex-direction: column; gap: 10px; flex: none; min-height: 0; }
-  .panel { min-height: 280px; flex: none; }
-  .panel[style*="flex:1.1"] { flex: none !important; min-height: 240px; }
+  .panel { min-height: 260px; flex: none; }
+  .panel[style*="flex:1.1"] { flex: none !important; min-height: 220px; }
 
   /* Code area fixed height on mobile */
-  .code-area { min-height: 200px; }
+  .code-area { min-height: 180px; }
   textarea.code-input { font-size: 11px; }
   .line-nums { font-size: 11px; min-width: 36px; }
 
@@ -598,7 +602,7 @@ textarea.code-input::placeholder { color: var(--muted2); }
 
   /* Side modals full width on mobile */
   .side-modal { width: 100%; right: -100%; }
-  .modal-card { min-width: unset; width: calc(100vw - 40px); margin: 0 20px; }
+  .modal-card { min-width: unset; width: calc(100vw - 32px); margin: 0 16px; }
 
   /* Fault panel */
   .fault-panel { padding: 8px 12px; }
@@ -613,7 +617,7 @@ textarea.code-input::placeholder { color: var(--muted2); }
   }
   .mobile-nav-btn {
     display: flex; flex-direction: column; align-items: center; gap: 3px;
-    color: var(--muted); cursor: pointer; padding: 4px 12px;
+    color: var(--muted); cursor: pointer; padding: 4px 8px;
     font-size: 10px; transition: color .2s;
   }
   .mobile-nav-btn.active { color: var(--purple); }
@@ -621,12 +625,323 @@ textarea.code-input::placeholder { color: var(--muted2); }
 
   /* Extra bottom padding so content isn't hidden under nav */
   .analyse-page { padding-bottom: 72px; }
+
+  /* AI Assistant mobile */
+  .assistant-page { padding: 10px; padding-bottom: 72px; overflow-y: auto; flex: none; }
+  .asst-grid { flex-direction: column; overflow: visible; gap: 10px; }
+  .asst-input-col { width: 100%; flex-shrink: 0; }
+  .asst-output-col { min-height: 300px; flex-shrink: 0; }
+  .asst-output-panel { min-height: 280px; }
+  .asst-mode-indicator { display: none; }
+  .asst-meta-bar { flex-wrap: wrap; gap: 8px; }
+  .asst-meta-item { font-size: 9px; }
+  #metaLimitBar { display: none; }
+  .asst-suggestions { gap: 5px; }
+  .asst-suggestion { font-size: 10px; padding: 3px 8px; }
+  .asst-header { flex-wrap: wrap; gap: 8px; }
 }
 
 /* Show mobile nav only on mobile */
 .mobile-nav { display: none; }
 @media (max-width: 768px) {
   .mobile-nav { display: flex; }
+}
+
+/* ══════════════════════════════════════════════════════
+   MODE TAB SWITCHER
+══════════════════════════════════════════════════════ */
+.mode-tabs {
+  display: flex; gap: 0; flex-shrink: 0;
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: 10px; padding: 3px;
+}
+.mode-tab {
+  padding: 5px 14px; border-radius: 7px; font-size: 12px; font-weight: 600;
+  cursor: pointer; transition: all .22s; border: none; background: none;
+  color: var(--muted); font-family: 'Inter', sans-serif; display: flex; align-items: center; gap: 6px;
+  white-space: nowrap;
+}
+.mode-tab.active {
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: 0 1px 4px rgba(0,0,0,.18);
+  border: 1px solid var(--border2);
+}
+.mode-tab .tab-dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--muted2); transition: background .22s;
+}
+.mode-tab.active .tab-dot { background: var(--purple); }
+.mode-tab[data-mode="assistant"].active .tab-dot { background: var(--sky); }
+
+/* ══════════════════════════════════════════════════════
+   AI ASSISTANT PAGE
+══════════════════════════════════════════════════════ */
+.assistant-page {
+  padding: 14px 16px;
+  display: flex; flex-direction: column; gap: 12px;
+  flex: 1; overflow: hidden; min-height: 0;
+  display: none;
+}
+.assistant-page.active { display: flex; }
+
+/* Header strip */
+.asst-header {
+  display: flex; align-items: center; gap: 12px; flex-shrink: 0;
+}
+.asst-badge {
+  display: flex; align-items: center; gap: 7px;
+  background: rgba(56,189,248,.1); border: 1px solid rgba(56,189,248,.22);
+  border-radius: 20px; padding: 4px 12px 4px 8px;
+}
+.asst-badge-dot {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: var(--sky); box-shadow: 0 0 6px rgba(56,189,248,.6);
+  animation: pulse-dot 2s ease-in-out infinite;
+}
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: .6; transform: scale(.85); }
+}
+.asst-badge-text { font-size: 11px; font-weight: 700; color: var(--sky); letter-spacing: .04em; }
+.asst-model-tag {
+  font-size: 10px; color: var(--muted); font-family: 'JetBrains Mono', monospace;
+  background: var(--surface2); border: 1px solid var(--border); padding: 3px 9px; border-radius: 6px;
+}
+
+/* Main grid */
+.asst-grid {
+  display: flex; gap: 12px; flex: 1; min-height: 0;
+}
+
+/* Left panel — inputs */
+.asst-input-col {
+  display: flex; flex-direction: column; gap: 10px;
+  width: 340px; flex-shrink: 0;
+}
+
+/* Prompt box */
+.asst-section-label {
+  font-size: 9px; text-transform: uppercase; letter-spacing: .1em;
+  color: var(--muted); font-weight: 700; margin-bottom: 6px; display: flex; align-items: center; gap: 6px;
+}
+.asst-section-label::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+
+.asst-prompt-wrap {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 12px; display: flex; flex-direction: column;
+  flex-shrink: 0; transition: border-color .2s, box-shadow .2s;
+}
+.asst-prompt-wrap:focus-within {
+  border-color: rgba(56,189,248,.4);
+  box-shadow: 0 0 0 3px rgba(56,189,248,.08);
+}
+.asst-prompt-header {
+  padding: 9px 12px 0; font-size: 10px; color: var(--muted); font-weight: 600;
+  text-transform: uppercase; letter-spacing: .06em;
+}
+.asst-prompt {
+  width: 100%; background: transparent; border: none; outline: none; resize: none;
+  color: var(--text); font-family: 'Inter', sans-serif;
+  font-size: 13px; line-height: 1.6; padding: 8px 12px 12px;
+  min-height: 90px; max-height: 150px;
+}
+.asst-prompt::placeholder { color: var(--muted2); }
+.asst-prompt-footer {
+  padding: 7px 12px; border-top: 1px solid var(--border);
+  display: flex; justify-content: space-between; align-items: center;
+}
+.asst-char-count { font-size: 10px; color: var(--muted2); font-family: 'JetBrains Mono', monospace; }
+
+/* Optional code input */
+.asst-code-wrap {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 12px; display: flex; flex-direction: column;
+  flex: 1; min-height: 0; overflow: hidden;
+  transition: border-color .2s, box-shadow .2s;
+}
+.asst-code-wrap:focus-within {
+  border-color: rgba(168,85,247,.35);
+  box-shadow: 0 0 0 3px rgba(168,85,247,.07);
+}
+.asst-code-header {
+  padding: 9px 12px; border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between; flex-shrink: 0;
+}
+.asst-code-label { font-size: 10px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: .06em; }
+.asst-optional-pill {
+  font-size: 9px; background: var(--surface2); border: 1px solid var(--border);
+  color: var(--muted2); padding: 2px 7px; border-radius: 10px;
+  font-family: 'JetBrains Mono', monospace; letter-spacing: .03em;
+}
+.asst-code-area { flex: 1; display: flex; overflow: hidden; min-height: 0; }
+.asst-line-nums {
+  padding: 8px 6px 8px 10px; color: var(--muted2);
+  font-family: 'JetBrains Mono', monospace; font-size: 11px; line-height: 19px;
+  text-align: right; user-select: none; min-width: 36px; flex-shrink: 0;
+  overflow: hidden; white-space: pre;
+}
+.asst-code-scroll { flex: 1; overflow: auto; }
+.asst-code-scroll::-webkit-scrollbar { width: 3px; }
+.asst-code-scroll::-webkit-scrollbar-thumb { background: rgba(128,128,128,.15); border-radius: 4px; }
+textarea.asst-code-input {
+  width: 100%; height: 100%; background: transparent; border: none; outline: none; resize: none;
+  color: var(--code-color); font-family: 'JetBrains Mono', monospace;
+  font-size: 11px; line-height: 19px; padding: 8px 12px 8px 4px;
+  caret-color: var(--sky); white-space: pre; overflow-wrap: normal;
+}
+textarea.asst-code-input::placeholder { color: var(--muted2); }
+
+/* Submit button */
+.asst-submit-btn {
+  width: 100%; padding: 11px; border-radius: 10px;
+  background: linear-gradient(135deg, rgba(56,189,248,.2) 0%, rgba(56,189,248,.1) 100%);
+  border: 1px solid rgba(56,189,248,.35); color: var(--sky);
+  font-size: 13px; font-weight: 700; cursor: pointer;
+  transition: all .22s; display: flex; align-items: center; justify-content: center; gap: 8px;
+  font-family: 'Inter', sans-serif; letter-spacing: .02em; flex-shrink: 0;
+  position: relative; overflow: hidden;
+}
+.asst-submit-btn::before {
+  content: ''; position: absolute; inset: 0;
+  background: linear-gradient(135deg, rgba(56,189,248,.15) 0%, rgba(168,85,247,.1) 100%);
+  opacity: 0; transition: opacity .22s;
+}
+.asst-submit-btn:hover::before { opacity: 1; }
+.asst-submit-btn:hover { border-color: rgba(56,189,248,.6); box-shadow: 0 4px 20px rgba(56,189,248,.15); }
+.asst-submit-btn:disabled { opacity: .45; cursor: not-allowed; }
+
+/* Mode pills — generate vs modify */
+.asst-mode-indicator {
+  display: flex; gap: 6px; flex-shrink: 0;
+}
+.asst-mode-pill {
+  flex: 1; padding: 7px 10px; border-radius: 8px; text-align: center;
+  font-size: 11px; font-weight: 600; border: 1px solid var(--border);
+  background: var(--surface2); color: var(--muted); transition: all .2s;
+  cursor: default;
+}
+.asst-mode-pill.active-gen {
+  background: rgba(132,204,22,.08); border-color: rgba(132,204,22,.3);
+  color: var(--lime);
+}
+.asst-mode-pill.active-mod {
+  background: rgba(245,158,11,.08); border-color: rgba(245,158,11,.3);
+  color: var(--amber);
+}
+
+/* Right panel — output */
+.asst-output-col {
+  flex: 1; display: flex; flex-direction: column; gap: 10px; min-width: 0;
+}
+.asst-output-panel {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 14px; display: flex; flex-direction: column;
+  flex: 1; overflow: hidden; min-height: 0;
+}
+.asst-output-header {
+  padding: 9px 14px; border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between; flex-shrink: 0;
+}
+.asst-output-title { font-size: 11px; color: var(--muted); font-weight: 500; display: flex; align-items: center; gap: 7px; }
+.asst-output-body {
+  flex: 1; overflow-y: auto; padding: 14px 16px;
+  font-family: 'JetBrains Mono', monospace; font-size: 12px; line-height: 1.75;
+  color: var(--code-color); white-space: pre-wrap; word-break: break-word;
+}
+.asst-output-body::-webkit-scrollbar { width: 3px; }
+.asst-output-body::-webkit-scrollbar-thumb { background: rgba(56,189,248,.15); border-radius: 4px; }
+.asst-output-footer {
+  padding: 9px 14px; border-top: 1px solid var(--border);
+  display: flex; gap: 7px; align-items: center; flex-shrink: 0;
+}
+.asst-output-empty {
+  flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px;
+  color: var(--muted);
+}
+.asst-empty-icon {
+  width: 56px; height: 56px; border-radius: 16px;
+  background: rgba(56,189,248,.08); border: 1px solid rgba(56,189,248,.15);
+  display: flex; align-items: center; justify-content: center; font-size: 24px;
+}
+.asst-empty-text { font-size: 12px; text-align: center; line-height: 1.6; max-width: 220px; }
+
+/* Meta bar below output */
+.asst-meta-bar {
+  background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
+  padding: 8px 14px; display: flex; gap: 16px; align-items: center; flex-shrink: 0;
+}
+.asst-meta-item { font-size: 10px; color: var(--muted); display: flex; align-items: center; gap: 5px; }
+.asst-meta-val { color: var(--text2); font-weight: 600; font-family: 'JetBrains Mono', monospace; }
+
+/* Loading state */
+.asst-loading {
+  flex: 1; display: none; flex-direction: column; align-items: center; justify-content: center; gap: 20px;
+}
+.asst-loading.show { display: flex; }
+.asst-loading-ring {
+  width: 48px; height: 48px; position: relative;
+}
+.asst-loading-ring svg { animation: spin 1.2s linear infinite; }
+.asst-loading-ring circle {
+  fill: none; stroke-width: 3; stroke-linecap: round; stroke-dasharray: 120 80;
+  stroke: url(#asstGrad); animation: dash 1.2s ease-in-out infinite;
+}
+.asst-loading-text { font-size: 12px; color: var(--muted); font-family: 'JetBrains Mono', monospace; text-align: center; }
+.asst-loading-steps { font-size: 11px; color: var(--sky); font-family: 'JetBrains Mono', monospace; }
+
+/* Stream cursor */
+.stream-cursor {
+  display: inline-block; width: 2px; height: 14px;
+  background: var(--sky); margin-left: 1px; vertical-align: middle;
+  animation: blink .7s step-end infinite;
+}
+@keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
+
+/* Prompt suggestions */
+.asst-suggestions {
+  display: flex; gap: 6px; flex-wrap: wrap; flex-shrink: 0;
+}
+.asst-suggestion {
+  padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 500;
+  background: var(--surface2); border: 1px solid var(--border);
+  color: var(--muted); cursor: pointer; transition: all .18s;
+  white-space: nowrap;
+}
+.asst-suggestion:hover {
+  background: rgba(56,189,248,.08); border-color: rgba(56,189,248,.3);
+  color: var(--sky);
+}
+
+/* Error state */
+.asst-error {
+  margin: 14px 16px; background: rgba(244,63,94,.07); border: 1px solid rgba(244,63,94,.22);
+  border-radius: 10px; padding: 11px 14px; font-size: 12px; color: #fca5a5;
+  font-family: 'JetBrains Mono', monospace; display: none;
+}
+.asst-error.show { display: block; }
+[data-theme="light"] .asst-error { color: #be123c; }
+
+/* History chips */
+.asst-history-strip {
+  display: flex; gap: 6px; overflow-x: auto; flex-shrink: 0; padding-bottom: 2px;
+}
+.asst-history-strip::-webkit-scrollbar { height: 2px; }
+.asst-history-chip {
+  padding: 4px 10px; border-radius: 20px; font-size: 10px; font-weight: 600;
+  background: var(--surface2); border: 1px solid var(--border);
+  color: var(--muted2); cursor: pointer; transition: all .18s; white-space: nowrap;
+  font-family: 'JetBrains Mono', monospace;
+}
+.asst-history-chip:hover { color: var(--text); border-color: var(--border2); }
+
+/* ─── Mobile responsive for assistant ─── */
+@media (max-width: 768px) {
+  .asst-grid { flex-direction: column; overflow-y: auto; gap: 10px; }
+  .asst-input-col { width: 100%; flex-shrink: 0; }
+  .asst-output-col { min-height: 320px; }
+  .asst-mode-indicator { display: none; }
+  .mode-tab .tab-text { display: none; }
 }
 </style>
 </head>
@@ -673,6 +988,7 @@ textarea.code-input::placeholder { color: var(--muted2); }
         <option value="javascript">🟨 JavaScript</option>
         <option value="typescript">🔷 TypeScript</option>
         <option value="cpp">⚙ C++</option>
+        <option value="c">🔧 C</option>
         <option value="go">🐹 Go</option>
       </select>
       <span class="modal-arrow">→</span>
@@ -682,6 +998,7 @@ textarea.code-input::placeholder { color: var(--muted2); }
         <option value="java">☕ Java</option>
         <option value="typescript">🔷 TypeScript</option>
         <option value="cpp">⚙ C++</option>
+        <option value="c">🔧 C</option>
         <option value="go">🐹 Go</option>
       </select>
     </div>
@@ -756,6 +1073,7 @@ textarea.code-input::placeholder { color: var(--muted2); }
       <div class="settings-option"><span>🐍 Python</span><span style="color:var(--lime);font-size:11px">Full support</span></div>
       <div class="settings-option"><span>☕ Java</span><span style="color:var(--lime);font-size:11px">Full support</span></div>
       <div class="settings-option"><span>🟨 JavaScript</span><span style="color:var(--lime);font-size:11px">Full support</span></div>
+      <div class="settings-option"><span>🔧 C</span><span style="color:var(--lime);font-size:11px">Full support</span></div>
       <div class="settings-option"><span>🔷 TypeScript</span><span style="color:var(--amber);font-size:11px">Partial</span></div>
       <div class="settings-option"><span>⚙ C++ / 🐹 Go</span><span style="color:var(--amber);font-size:11px">Conversion only</span></div>
     </div>
@@ -866,7 +1184,8 @@ textarea.code-input::placeholder { color: var(--muted2); }
 ══════════════════════════════════════════════════════ -->
 <div class="sidebar">
   <div class="sidebar-logo" onclick="showPage('analyse')" title="Home">⚓</div>
-  <div class="sidebar-icon active" id="sb-analyse" onclick="showPage('analyse')" title="Analyse Code">⊞</div>
+  <div class="sidebar-icon active" id="sb-analyse" onclick="switchMode('review')" title="Code Review">⊞</div>
+  <div class="sidebar-icon" id="sb-assistant" onclick="switchMode('assistant')" title="AI Assistant">✦</div>
   <div class="sidebar-icon" id="sb-history" onclick="openSideModal('sideHistory')" title="History">⏱</div>
   <div class="sidebar-divider"></div>
   <div class="sidebar-icon" onclick="openSideModal('sideReports')" title="Reports">📊</div>
@@ -890,17 +1209,30 @@ textarea.code-input::placeholder { color: var(--muted2); }
 
     <div class="sep"></div>
 
-    <!-- Language selector -->
-    <div class="lang-group">
+    <!-- Mode tabs -->
+    <div class="mode-tabs" id="modeTabs">
+      <button class="mode-tab active" data-mode="review" onclick="switchMode('review')">
+        <span class="tab-dot"></span><span class="tab-text">Code Review</span>
+      </button>
+      <button class="mode-tab" data-mode="assistant" onclick="switchMode('assistant')">
+        <span class="tab-dot"></span><span class="tab-text">AI Assistant</span>
+      </button>
+    </div>
+
+    <div class="sep" id="reviewOnlySep"></div>
+
+    <!-- Language selector (review mode only) -->
+    <div class="lang-group" id="reviewLangGroup">
       <button class="lang-btn {% if lang=='python' %}active{% endif %}" id="lang-python" onclick="setLang('python')">🐍 Python</button>
       <button class="lang-btn {% if lang=='java' %}active{% endif %}" id="lang-java" onclick="setLang('java')">☕ Java</button>
       <button class="lang-btn {% if lang=='javascript' %}active{% endif %}" id="lang-js" onclick="setLang('javascript')">🟨 JS</button>
+      <button class="lang-btn {% if lang=='c' %}active{% endif %}" id="lang-c" onclick="setLang('c')">⚙ C</button>
     </div>
 
-    <div class="sep"></div>
+    <div class="sep" id="reviewConvertSep"></div>
 
-    <!-- Code Convert -->
-    <button class="convert-btn" onclick="openConvert()">⇄ Convert</button>
+    <!-- Code Convert (review mode only) -->
+    <button class="convert-btn" id="reviewConvertBtn" onclick="openConvert()">⇄ Convert</button>
 
     <div class="topbar-right">
       <div class="icon-btn notif-badge" title="Notifications" onclick="openSideModal('sideNotifs')">🔔</div>
@@ -1051,6 +1383,162 @@ textarea.code-input::placeholder { color: var(--muted2); }
 
     </div><!-- /analyse-page -->
 
+    <!-- ═══════════ AI ASSISTANT PAGE ═══════════ -->
+    <div id="page-assistant" class="assistant-page">
+
+      <!-- Header -->
+      <div class="asst-header">
+        <div class="asst-badge">
+          <div class="asst-badge-dot"></div>
+          <span class="asst-badge-text">AI ASSISTANT</span>
+        </div>
+        <span class="asst-model-tag">claude-sonnet-4</span>
+        <div style="margin-left:auto;display:flex;gap:6px">
+          <div class="asst-mode-pill" id="asstModePill1">⚡ Generate</div>
+          <div class="asst-mode-pill" id="asstModePill2">✎ Modify</div>
+        </div>
+      </div>
+
+      <!-- Main grid -->
+      <div class="asst-grid">
+
+        <!-- LEFT: Inputs -->
+        <div class="asst-input-col">
+
+          <!-- Suggestions -->
+          <div>
+            <div class="asst-section-label">Quick prompts</div>
+            <div class="asst-suggestions">
+              <div class="asst-suggestion" onclick="fillPrompt('Optimize this code for performance')">⚡ Optimize</div>
+              <div class="asst-suggestion" onclick="fillPrompt('Add error handling and input validation')">🛡 Add error handling</div>
+              <div class="asst-suggestion" onclick="fillPrompt('Write unit tests for this code')">🧪 Write tests</div>
+              <div class="asst-suggestion" onclick="fillPrompt('Add detailed docstrings and comments')">📝 Document</div>
+              <div class="asst-suggestion" onclick="fillPrompt('Refactor to use design patterns')">🏗 Refactor</div>
+              <div class="asst-suggestion" onclick="fillPrompt('Convert to async/await pattern')">⟳ Async</div>
+            </div>
+          </div>
+
+          <!-- Prompt input -->
+          <div>
+            <div class="asst-section-label">Your prompt</div>
+            <div class="asst-prompt-wrap">
+              <div class="asst-prompt-header">✦ What should the AI do?</div>
+              <textarea class="asst-prompt" id="asstPrompt" placeholder="e.g. Optimize this function for speed, fix the bug in line 12, generate a binary search algorithm..."
+                oninput="updateAsstMode();updateCharCount(this)"></textarea>
+              <div class="asst-prompt-footer">
+                <span class="asst-char-count" id="asstCharCount">0 / 2000</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Optional code -->
+          <div style="flex:1;min-height:0;display:flex;flex-direction:column">
+            <div class="asst-section-label">Code to modify <span style="font-size:9px;color:var(--muted2);font-weight:400;text-transform:none;letter-spacing:0">(leave blank to generate new)</span></div>
+            <div class="asst-code-wrap">
+              <div class="asst-code-header">
+                <span class="asst-code-label">📄 Paste code here</span>
+                <span class="asst-optional-pill">optional</span>
+              </div>
+              <div class="asst-code-area">
+                <div class="asst-line-nums" id="asstLineNums">1
+</div>
+                <div class="asst-code-scroll">
+                  <textarea class="asst-code-input" id="asstCode"
+                    placeholder="// Paste existing code here if you want to modify it&#10;// Leave empty to generate fresh code"
+                    oninput="syncAsstLines(this);updateAsstMode()"
+                    onscroll="document.getElementById('asstLineNums').scrollTop=this.scrollTop"></textarea>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Submit -->
+          <button class="asst-submit-btn" id="asstSubmitBtn" onclick="runAssistant()">
+            <span id="asstBtnIcon">✦</span>
+            <span id="asstBtnText">Generate Code</span>
+          </button>
+
+        </div><!-- /asst-input-col -->
+
+        <!-- RIGHT: Output -->
+        <div class="asst-output-col">
+          <div class="asst-output-panel">
+            <div class="asst-output-header">
+              <div class="asst-output-title">
+                <span id="asstOutputDot" style="width:7px;height:7px;border-radius:50%;background:var(--muted2);display:inline-block;transition:background .3s"></span>
+                <span id="asstOutputLabel">Output</span>
+              </div>
+              <div style="display:flex;gap:6px">
+                <button class="copy-btn-sm" id="asstCopyBtn" onclick="copyAsstOutput()" style="display:none">⎘ Copy</button>
+                <button class="copy-btn-sm" id="asstDownloadBtn" onclick="downloadAsstOutput()" style="display:none">⬇ Download</button>
+                <button class="copy-btn-sm" id="asstClearBtn" onclick="clearAsstOutput()" style="display:none">✕ Clear</button>
+              </div>
+            </div>
+
+            <!-- Empty state -->
+            <div class="asst-output-empty" id="asstEmptyState">
+              <div class="asst-empty-icon">✦</div>
+              <div class="asst-empty-text">Enter a prompt and click Generate — AI output will appear here, ready to copy or download.</div>
+            </div>
+
+            <!-- Loading -->
+            <div class="asst-loading" id="asstLoading">
+              <div class="asst-loading-ring">
+                <svg viewBox="25 25 50 50" width="48" height="48">
+                  <circle cx="50" cy="50" r="20" stroke="url(#asstGrad)"/>
+                  <defs>
+                    <linearGradient id="asstGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                      <stop offset="0%" stop-color="#38bdf8"/>
+                      <stop offset="100%" stop-color="#a855f7"/>
+                    </linearGradient>
+                  </defs>
+                </svg>
+              </div>
+              <div>
+                <div class="asst-loading-text">AI is working...</div>
+                <div class="asst-loading-steps" id="asstLoadingStep">Connecting to model</div>
+              </div>
+            </div>
+
+            <!-- Error -->
+            <div class="asst-error" id="asstError"></div>
+
+            <!-- Output body -->
+            <div class="asst-output-body" id="asstOutput" style="display:none"></div>
+
+            <div class="asst-output-footer" id="asstOutputFooter" style="display:none">
+              <button class="btn btn-ghost" style="font-size:11px;padding:6px 12px" onclick="copyAsstOutput()">⎘ Copy Code</button>
+              <button class="btn btn-ghost" style="font-size:11px;padding:6px 12px;color:var(--lime);border-color:rgba(132,204,22,.25)" onclick="sendToReview()">→ Send to Review</button>
+              <span style="margin-left:auto;font-size:10px;color:var(--muted)" id="asstTokenCount"></span>
+            </div>
+          </div>
+
+          <!-- Meta bar -->
+          <div class="asst-meta-bar" id="asstMetaBar" style="display:none">
+            <div class="asst-meta-item">Mode <span class="asst-meta-val" id="metaMode">—</span></div>
+            <div class="asst-meta-item">Model <span class="asst-meta-val" id="metaModel">—</span></div>
+            <div class="asst-meta-item" title="Tokens used by your prompt + code">In <span class="asst-meta-val" id="metaPromptTok">—</span></div>
+            <div class="asst-meta-item" title="Tokens in the AI response">Out <span class="asst-meta-val" id="metaOutputTok">—</span></div>
+            <div class="asst-meta-item" title="Total tokens used">Total <span class="asst-meta-val" id="metaTokens">—</span></div>
+            <div class="asst-meta-item" title="Context window used">
+              Limit
+              <span class="asst-meta-val" id="metaLimitPct">—</span>
+              <div id="metaLimitBar" style="width:60px;height:4px;background:var(--surface3);border-radius:4px;overflow:hidden;margin-left:4px">
+                <div id="metaLimitFill" style="height:100%;border-radius:4px;transition:width .4s,background .4s;width:0%"></div>
+              </div>
+            </div>
+            <div class="asst-meta-item">Time <span class="asst-meta-val" id="metaTime">—</span></div>
+            <div class="asst-meta-item">Lines <span class="asst-meta-val" id="metaLines">—</span></div>
+          </div>
+
+          <!-- Past outputs strip -->
+          <div class="asst-history-strip" id="asstHistoryStrip" style="display:none"></div>
+
+        </div><!-- /asst-output-col -->
+      </div><!-- /asst-grid -->
+
+    </div><!-- /assistant-page -->
+
   </div><!-- /content -->
 </div><!-- /main -->
 
@@ -1074,11 +1562,289 @@ function toggleTheme() { applyTheme(theme === 'dark' ? 'light' : 'dark'); }
 // ── Page switching ───────────────────────────────────
 function showPage(name) {
   document.querySelectorAll('[id^="page-"]').forEach(p => p.style.display = 'none');
-  document.getElementById('page-' + name).style.display = 'flex';
+  const pg = document.getElementById('page-' + name);
+  if (pg) { pg.style.display = 'flex'; pg.classList.add('active'); }
   document.querySelectorAll('.sidebar-icon[id^="sb-"]').forEach(el => el.classList.remove('active'));
   const sb = document.getElementById('sb-' + name);
   if (sb) sb.classList.add('active');
 }
+
+// ── Mode switching (Review ↔ Assistant) ─────────────
+function switchMode(mode) {
+  // Tab buttons
+  document.querySelectorAll('.mode-tab').forEach(t => t.classList.remove('active'));
+  const tab = document.querySelector(`.mode-tab[data-mode="${mode}"]`);
+  if (tab) tab.classList.add('active');
+
+  // Pages
+  document.getElementById('page-analyse').style.display = 'none';
+  document.getElementById('page-analyse').classList.remove('active');
+  document.getElementById('page-assistant').style.display = 'none';
+  document.getElementById('page-assistant').classList.remove('active');
+
+  // Sidebar icons
+  document.querySelectorAll('.sidebar-icon[id^="sb-"]').forEach(el => el.classList.remove('active'));
+
+  const reviewOnly = ['reviewLangGroup','reviewOnlySep','reviewConvertSep','reviewConvertBtn'];
+
+  if (mode === 'review') {
+    document.getElementById('page-analyse').style.display = 'flex';
+    document.getElementById('page-analyse').classList.add('active');
+    const sb = document.getElementById('sb-analyse');
+    if (sb) sb.classList.add('active');
+    reviewOnly.forEach(id => { const el = document.getElementById(id); if(el) el.style.display=''; });
+  } else {
+    document.getElementById('page-assistant').style.display = 'flex';
+    document.getElementById('page-assistant').classList.add('active');
+    const sb = document.getElementById('sb-assistant');
+    if (sb) sb.classList.add('active');
+    reviewOnly.forEach(id => { const el = document.getElementById(id); if(el) el.style.display='none'; });
+  }
+}
+
+// ── AI Assistant ─────────────────────────────────────
+let asstHistory = [];
+let asstOutputText = '';
+
+function updateAsstMode() {
+  const hasCode = document.getElementById('asstCode').value.trim().length > 0;
+  const p1 = document.getElementById('asstModePill1');
+  const p2 = document.getElementById('asstModePill2');
+  const btn = document.getElementById('asstBtnText');
+  if (hasCode) {
+    p1.className = 'asst-mode-pill'; p2.className = 'asst-mode-pill active-mod';
+    btn.textContent = 'Modify Code';
+  } else {
+    p1.className = 'asst-mode-pill active-gen'; p2.className = 'asst-mode-pill';
+    btn.textContent = 'Generate Code';
+  }
+}
+
+function updateCharCount(el) {
+  const c = el.value.length;
+  document.getElementById('asstCharCount').textContent = c + ' / 2000';
+  if (c > 1800) document.getElementById('asstCharCount').style.color = 'var(--rose)';
+  else if (c > 1400) document.getElementById('asstCharCount').style.color = 'var(--amber)';
+  else document.getElementById('asstCharCount').style.color = '';
+}
+
+function syncAsstLines(ta) {
+  const lines = ta.value.split('\n').length;
+  const nums = Array.from({length: lines}, (_, i) => i + 1).join('\n');
+  document.getElementById('asstLineNums').textContent = nums + '\n';
+}
+
+function fillPrompt(text) {
+  document.getElementById('asstPrompt').value = text;
+  updateCharCount(document.getElementById('asstPrompt'));
+  document.getElementById('asstPrompt').focus();
+}
+
+function setAsstOutputDot(color) {
+  const dot = document.getElementById('asstOutputDot');
+  dot.style.background = color;
+  if (color === 'var(--sky)') dot.style.boxShadow = '0 0 6px rgba(56,189,248,.6)';
+  else dot.style.boxShadow = '';
+}
+
+async function runAssistant() {
+  const prompt = document.getElementById('asstPrompt').value.trim();
+  const code   = document.getElementById('asstCode').value.trim();
+
+  if (!prompt) {
+    showAsstError('⚠ Please enter a prompt before submitting.');
+    return;
+  }
+
+  // Reset UI
+  hideAsstError();
+  document.getElementById('asstEmptyState').style.display = 'none';
+  document.getElementById('asstOutput').style.display = 'none';
+  document.getElementById('asstOutputFooter').style.display = 'none';
+  document.getElementById('asstMetaBar').style.display = 'none';
+  document.getElementById('asstCopyBtn').style.display = 'none';
+  document.getElementById('asstDownloadBtn').style.display = 'none';
+  document.getElementById('asstClearBtn').style.display = 'none';
+  document.getElementById('asstLoading').classList.add('show');
+  document.getElementById('asstSubmitBtn').disabled = true;
+  setAsstOutputDot('var(--sky)');
+  document.getElementById('asstOutputLabel').textContent = 'Generating...';
+
+  const steps = ['Connecting to model','Analyzing prompt','Processing context','Generating output','Finalizing response'];
+  let stepIdx = 0;
+  const stepInterval = setInterval(() => {
+    document.getElementById('asstLoadingStep').textContent = steps[Math.min(stepIdx++, steps.length-1)];
+  }, 900);
+
+  const startTime = Date.now();
+
+  try {
+    const resp = await fetch('/assistant', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ prompt, code })
+    });
+    const data = await resp.json();
+    clearInterval(stepInterval);
+
+    if (!resp.ok || data.error) {
+      showAsstError('❌ ' + (data.error || 'Request failed. Check server.'));
+      return;
+    }
+
+    const elapsed = ((Date.now() - startTime) / 1000).toFixed(1) + 's';
+    const output = data.result || '';
+    asstOutputText = output;
+    const lineCount = output.split('\n').length;
+
+    // Real token data from Groq
+    const promptTok = data.prompt_tokens || 0;
+    const outputTok = data.output_tokens || 0;
+    const totalTok  = data.total_tokens  || 0;
+    const limitPct  = data.limit_pct     || 0;
+    const limit     = data.limit         || 0;
+    const modelName = (data.model || '').replace('llama-3.3-70b-versatile','llama-3.3-70b')
+                                         .replace('mixtral-8x7b-32768','mixtral-8x7b')
+                                         .replace('llama3-70b-8192','llama3-70b')
+                                         .replace('gemma2-9b-it','gemma2-9b');
+
+    // Warn if close to limit
+    if (limitPct >= 80) {
+      showAsstError(`⚠ Used ${limitPct}% of ${modelName}'s context window (${totalTok.toLocaleString()} / ${limit.toLocaleString()} tokens). Try shorter code or a model with a larger context window.`);
+    }
+
+    // Save to history
+    asstHistory.unshift({ prompt: prompt.slice(0, 40) + (prompt.length > 40 ? '…' : ''), output, time: new Date().toLocaleTimeString() });
+    if (asstHistory.length > 6) asstHistory.pop();
+    renderAsstHistory();
+
+    // Show output
+    document.getElementById('asstLoading').classList.remove('show');
+    const outEl = document.getElementById('asstOutput');
+    outEl.style.display = 'block';
+    outEl.textContent = '';
+
+    // Type-writer stream effect
+    let i = 0;
+    const cursor = document.createElement('span');
+    cursor.className = 'stream-cursor';
+    outEl.appendChild(cursor);
+    function typeNext() {
+      if (i < output.length) {
+        outEl.insertBefore(document.createTextNode(output[i++]), cursor);
+        outEl.scrollTop = outEl.scrollHeight;
+        setTimeout(typeNext, i < 100 ? 8 : 1);
+      } else {
+        cursor.remove();
+        document.getElementById('asstOutputFooter').style.display = 'flex';
+        document.getElementById('asstMetaBar').style.display = 'flex';
+        document.getElementById('asstCopyBtn').style.display = '';
+        document.getElementById('asstDownloadBtn').style.display = '';
+        document.getElementById('asstClearBtn').style.display = '';
+        document.getElementById('metaMode').textContent       = code ? 'Modify' : 'Generate';
+        document.getElementById('metaModel').textContent      = modelName || '—';
+        document.getElementById('metaPromptTok').textContent  = promptTok.toLocaleString();
+        document.getElementById('metaOutputTok').textContent  = outputTok.toLocaleString();
+        document.getElementById('metaTokens').textContent     = totalTok.toLocaleString();
+        document.getElementById('metaLimitPct').textContent   = limitPct + '%';
+        document.getElementById('metaTime').textContent       = elapsed;
+        document.getElementById('metaLines').textContent      = lineCount;
+        // Limit bar colour: green < 60%, amber 60-80%, red > 80%
+        const fill = document.getElementById('metaLimitFill');
+        fill.style.width = Math.min(limitPct, 100) + '%';
+        fill.style.background = limitPct >= 80 ? 'var(--rose)' : limitPct >= 60 ? 'var(--amber)' : 'var(--lime)';
+        setAsstOutputDot('var(--lime)');
+        document.getElementById('asstOutputLabel').textContent = code ? 'Modified Code' : 'Generated Code';
+      }
+    }
+    typeNext();
+
+  } catch(err) {
+    clearInterval(stepInterval);
+    showAsstError('❌ Network error — is the server running?');
+  } finally {
+    document.getElementById('asstLoading').classList.remove('show');
+    document.getElementById('asstSubmitBtn').disabled = false;
+  }
+}
+
+function showAsstError(msg) {
+  const el = document.getElementById('asstError');
+  el.textContent = msg; el.classList.add('show');
+  document.getElementById('asstLoading').classList.remove('show');
+  document.getElementById('asstEmptyState').style.display = 'flex';
+  document.getElementById('asstSubmitBtn').disabled = false;
+  setAsstOutputDot('var(--rose)');
+  document.getElementById('asstOutputLabel').textContent = 'Output';
+}
+function hideAsstError() {
+  document.getElementById('asstError').classList.remove('show');
+}
+
+function copyAsstOutput() {
+  navigator.clipboard.writeText(asstOutputText).then(() => {
+    const btn = document.getElementById('asstCopyBtn');
+    btn.textContent = '✓ Copied'; btn.classList.add('copied');
+    setTimeout(() => { btn.textContent = '⎘ Copy'; btn.classList.remove('copied'); }, 1600);
+  });
+}
+function downloadAsstOutput() {
+  const blob = new Blob([asstOutputText], { type: 'text/plain' });
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+  a.download = 'ai_output.py'; a.click();
+}
+function clearAsstOutput() {
+  asstOutputText = '';
+  document.getElementById('asstOutput').style.display = 'none';
+  document.getElementById('asstOutputFooter').style.display = 'none';
+  document.getElementById('asstMetaBar').style.display = 'none';
+  document.getElementById('asstCopyBtn').style.display = 'none';
+  document.getElementById('asstDownloadBtn').style.display = 'none';
+  document.getElementById('asstClearBtn').style.display = 'none';
+  document.getElementById('asstEmptyState').style.display = 'flex';
+  setAsstOutputDot('var(--muted2)');
+  document.getElementById('asstOutputLabel').textContent = 'Output';
+}
+function sendToReview() {
+  if (!asstOutputText) return;
+  document.getElementById('codeInput').value = asstOutputText;
+  syncLines(document.getElementById('codeInput'));
+  updateStats(document.getElementById('codeInput'));
+  switchMode('review');
+}
+function renderAsstHistory() {
+  const strip = document.getElementById('asstHistoryStrip');
+  strip.style.display = asstHistory.length ? 'flex' : 'none';
+  strip.innerHTML = asstHistory.map((h, i) =>
+    `<div class="asst-history-chip" onclick="restoreAsstHistory(${i})" title="${h.time}">${h.prompt}</div>`
+  ).join('');
+}
+function restoreAsstHistory(i) {
+  const h = asstHistory[i];
+  if (!h) return;
+  asstOutputText = h.output;
+  const outEl = document.getElementById('asstOutput');
+  outEl.textContent = h.output;
+  outEl.style.display = 'block';
+  document.getElementById('asstOutputFooter').style.display = 'flex';
+  document.getElementById('asstMetaBar').style.display = 'flex';
+  document.getElementById('asstCopyBtn').style.display = '';
+  document.getElementById('asstDownloadBtn').style.display = '';
+  document.getElementById('asstClearBtn').style.display = '';
+  document.getElementById('asstEmptyState').style.display = 'none';
+  document.getElementById('asstOutputLabel').textContent = 'Restored Output';
+  setAsstOutputDot('var(--purple)');
+}
+
+// Ctrl+Enter to submit in assistant mode
+document.addEventListener('keydown', e => {
+  if (e.ctrlKey && e.key === 'Enter') {
+    const asst = document.getElementById('page-assistant');
+    if (asst && (asst.style.display === 'flex' || asst.classList.contains('active'))) {
+      runAssistant();
+    }
+  }
+});
 
 // ── Side modals ──────────────────────────────────────
 function openSideModal(id) {
@@ -1105,10 +1871,10 @@ function closeAllSideModals() {
 }
 
 // ── Language switching ───────────────────────────────
-const langExt = { python:'py', java:'java', javascript:'js' };
+const langExt = { python:'py', java:'java', javascript:'js', c:'c' };
 function setLang(lang) {
   document.getElementById('langHidden').value = lang;
-  ['python','java','js'].forEach(l => {
+  ['python','java','js','c'].forEach(l => {
     const id = 'lang-' + l;
     const el = document.getElementById(id);
     if (el) el.classList.toggle('active', (l === 'js' ? 'javascript' : l) === lang);
@@ -1119,13 +1885,23 @@ function setLang(lang) {
 
 // ── Gauge chart ──────────────────────────────────────
 const score = {{ result.score }};
-const gColor = score >= 85 ? '#84cc16' : score >= 50 ? '#f59e0b' : score > 0 ? '#f43f5e' : '#1e293b';
+const gColor = score >= 85 ? '#84cc16' : score >= 50 ? '#f59e0b' : score > 0 ? '#f43f5e' : '#334155';
+const gBg    = document.documentElement.getAttribute('data-theme') === 'light' ? '#e2e8f0' : '#1e293b';
 const gaugeCtx = document.getElementById('gaugeChart');
 if (gaugeCtx) {
   new Chart(gaugeCtx, {
     type: 'doughnut',
-    data: { datasets:[{ data:[score, 100-score], backgroundColor:[gColor,'#0f172a'], borderWidth:0, borderRadius:6 }] },
-    options: { cutout:'78%', plugins:{ legend:{ display:false } }, animation:{ duration:900, easing:'easeInOutQuart' } }
+    data: { datasets:[{
+      data: [score || 1, 100 - (score || 1)],
+      backgroundColor: [score > 0 ? gColor : '#334155', gBg],
+      borderWidth: 0,
+      borderRadius: 4
+    }] },
+    options: {
+      cutout: '76%',
+      plugins: { legend: { display: false }, tooltip: { enabled: false } },
+      animation: { duration: 1000, easing: 'easeInOutQuart' }
+    }
   });
 }
 
@@ -1451,7 +2227,7 @@ def index():
         result["security_count"] = f"{sec_count:02d}"
         result["latency"]        = f"{max(1, result['chars'] // 80)}ms"
 
-    lang_ext = {"python": "py", "java": "java", "javascript": "js"}.get(lang, "txt")
+    lang_ext = {"python": "py", "java": "java", "javascript": "js", "c": "c"}.get(lang, "txt")
     return render_template_string(HTML, code=code, lang=lang, result=result, lang_ext=lang_ext)
 
 
@@ -1496,6 +2272,106 @@ Return ONLY the {to_lang} code:"""
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+
+@app.route("/assistant", methods=["POST"])
+def assistant():
+    """AI Assistant — generate or modify code based on prompt."""
+    try:
+        data   = request.get_json()
+        prompt = data.get("prompt", "").strip()
+        code   = data.get("code", "").strip()
+
+        if not prompt:
+            return jsonify({"error": "No prompt provided"}), 400
+
+        from code_analyzer import _groq_call
+
+        if code:
+            system = """You are an expert AI coding assistant. The user will give you existing code and instructions on how to modify it.
+Rules:
+- Return ONLY the modified code, no explanations, no markdown fences, no preamble.
+- Preserve the original language and structure unless explicitly asked to change.
+- Apply the requested modifications precisely.
+- Add comments only where necessary to explain changes.
+- Do NOT wrap the output in triple backticks."""
+            user = f"""Instructions: {prompt}
+
+Existing code to modify:
+{code}
+
+Return ONLY the modified code:"""
+        else:
+            system = """You are an expert AI coding assistant. Generate clean, production-quality code based on the user's request.
+Rules:
+- Return ONLY the code, no explanations, no markdown fences, no preamble.
+- Use best practices and idiomatic patterns for the language.
+- Add brief inline comments for complex logic.
+- Do NOT wrap the output in triple backticks."""
+            user = f"""Generate code for the following request:
+{prompt}
+
+Return ONLY the code:"""
+
+        import os
+        from groq import Groq
+        groq_client = Groq(api_key=os.getenv("API_KEY"))
+
+        MODEL_LIMITS = {
+            "llama-3.3-70b-versatile": 128000,
+            "llama3-70b-8192":          8192,
+            "mixtral-8x7b-32768":      32768,
+            "gemma2-9b-it":             8192,
+        }
+        result = ""
+        model_used = ""
+        prompt_tokens = output_tokens = total_tokens = limit = 0
+        limit_pct = 0.0
+
+        for model in MODEL_LIMITS:
+            try:
+                response = groq_client.chat.completions.create(
+                    model=model,
+                    messages=[
+                        {"role": "system", "content": system},
+                        {"role": "user",   "content": user}
+                    ],
+                    max_tokens=2000,
+                    temperature=0.1,
+                    timeout=20
+                )
+                text = response.choices[0].message.content.strip()
+                if text and len(text) > 20:
+                    result      = text
+                    model_used  = model
+                    usage       = response.usage
+                    if usage:
+                        prompt_tokens  = usage.prompt_tokens
+                        output_tokens  = usage.completion_tokens
+                        total_tokens   = usage.total_tokens
+                        limit          = MODEL_LIMITS[model]
+                        limit_pct      = round((total_tokens / limit) * 100, 1)
+                    break
+            except Exception:
+                continue
+
+        if result:
+            for fence in ["```python","```java","```javascript","```typescript","```cpp","```go","```"]:
+                result = result.replace(fence, "")
+            result = result.strip()
+            return jsonify({
+                "result":        result,
+                "model":         model_used,
+                "prompt_tokens": prompt_tokens,
+                "output_tokens": output_tokens,
+                "total_tokens":  total_tokens,
+                "limit":         limit,
+                "limit_pct":     limit_pct,
+            })
+        else:
+            return jsonify({"error": "AI model unavailable — check your Groq API key"}), 500
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 if __name__ == "__main__":
     import os

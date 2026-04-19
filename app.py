@@ -7,7 +7,8 @@ app = Flask(__name__)
 
 @app.route('/robots.txt')
 def robots():
-    return send_file(os.path.join(os.path.dirname(__file__), 'robots.txt'))
+    content = "User-agent: *\nAllow: /\n\nSitemap: https://ai-code-review-system.onrender.com/sitemap.xml\n"
+    return app.response_class(content, mimetype='text/plain')
 
 HTML = r"""
 <!DOCTYPE html>

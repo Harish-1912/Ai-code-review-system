@@ -14,6 +14,15 @@ HTML = r"""
 <!DOCTYPE html>
 <html lang="en" data-theme="dark">
 <head>
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-VG3WRR6KB1"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'G-VG3WRR6KB1');
+</script>
 <meta charset="UTF-8">
 <meta name="google-site-verification" content="36sRSLEbYk3ZaYUam-VCQzh9aazXBdnGXtfa9RdxAME" />
 <link rel="icon" href="/static/favicon.ico" type="image/x-icon">

@@ -8,7 +8,7 @@ load_dotenv()
 GROQ_API_KEY = os.getenv("API_KEY")
 client = Groq(api_key=GROQ_API_KEY)
 
-MODEL_DIR = Path(__file__).parent / 'models'
+MODEL_DIR = Path(__file__).parent / 'model/models'
 _bug_model = _adv_model = None
 
 def _load_models():
@@ -65,6 +65,27 @@ PATTERNS = {
         (r'delete\s+\w+\[',                  "Use .splice() not delete on array index",            2),
         (r'JSON\.parse\s*\(',                "Wrap JSON.parse in try-catch for safety",            2),
         (r'console\.log\s*\(',               "Remove console.log before production",               1),
+    ],
+    "c": [
+        (r'\bgets\s*\(',                      "gets() has no bounds check — use fgets() instead",  3),
+        (r'\bscanf\s*\(\s*"%s"',             'scanf("%s") unbounded — use scanf("%Ns") with limit',3),
+        (r'\bstrcpy\s*\(',                    "strcpy() unsafe — use strncpy() or strlcpy()",      3),
+        (r'\bstrcat\s*\(',                    "strcat() unsafe — use strncat()",                    3),
+        (r'\bsprintf\s*\(',                   "sprintf() unsafe — use snprintf()",                  3),
+        (r'\bmalloc\s*\([^)]+\)\s*;(?!\s*if)',
+                                              "malloc() return not checked — check for NULL",      2),
+        (r'\bfree\s*\(\s*\w+\s*\)\s*;(?!.*\w+\s*=\s*NULL)',
+                                              "After free(), set pointer to NULL to avoid use-after-free", 2),
+        (r'==\s*NULL|NULL\s*==',             "Use explicit NULL check: if (ptr == NULL)",          1),
+        (r'\bprintf\s*\(\s*\w+\s*\)',        "printf(var) allows format string attack — use printf(\"%s\", var)", 3),
+        (r'int\s+main\s*\(\s*\)',            "Use int main(void) for no args or int main(int argc, char *argv[])", 1),
+        (r'#include\s*<string\.h>.*\bstrcmp\b|strcmp\s*\(',
+                                              "strcmp returns 0 for equal — don't use as boolean", 1),
+        (r'\bsystem\s*\(',                   "system() is dangerous — use exec() family instead", 3),
+        (r'char\s+\w+\s*\[\s*\d+\s*\].*=.*gets|gets.*char\s+\w+',
+                                              "Buffer overflow risk — never use gets()",           3),
+        (r'while\s*\(\s*1\s*\)|for\s*\(\s*;\s*;\s*\)',
+                                              "Infinite loop — ensure there is a break condition", 2),
     ],
 }
 
@@ -128,7 +149,30 @@ def _find_faults(code: str, lang: str) -> str:
             flagged.append(f"🟡 PYLINT:  {issue}")
     return '\n'.join(flagged) if flagged else '✅ No issues found.'
 
-def _execute_and_check(code: str) -> str:
+def _execute_and_check(code: str, lang: str = 'python') -> str:
+    if lang == 'c':
+        try:
+            with tempfile.NamedTemporaryFile(mode='w', suffix='.c',
+                                             delete=False, encoding='utf-8') as f:
+                f.write(code)
+                tmp_c = f.name
+            tmp_out = tmp_c.replace('.c', '.out')
+            compile_result = subprocess.run(
+                ['gcc', tmp_c, '-o', tmp_out, '-Wall', '-Wextra'],
+                capture_output=True, text=True, timeout=15
+            )
+            os.unlink(tmp_c)
+            if os.path.exists(tmp_out):
+                os.unlink(tmp_out)
+            if compile_result.returncode != 0:
+                return f"🔴 COMPILE ERROR:\n{compile_result.stderr.strip()}"
+            warnings = compile_result.stderr.strip()
+            return f"✅ Compiles successfully.{' Warnings:\\n' + warnings if warnings else ''}"
+        except FileNotFoundError:
+            return "⚠ gcc not found — install GCC to enable C compilation checks."
+        except Exception as e:
+            return f"🔴 Compile check failed: {e}"
+    # Python execution
     try:
         with tempfile.NamedTemporaryFile(mode='w', suffix='.py',
                                          delete=False, encoding='utf-8') as f:
@@ -145,13 +189,40 @@ def _execute_and_check(code: str) -> str:
     except Exception as e:
         return f"🔴 Execution failed: {e}"
 
+
+# ── Updated _groq_call — returns dict with result + real token usage ──────────
 def _groq_call(system: str, user: str) -> str:
-    models = [
-        "llama-3.3-70b-versatile",
-        "llama3-70b-8192",
-        "mixtral-8x7b-32768",
-        "gemma2-9b-it",
-    ]
+    """
+    Calls Groq API and returns just the text result (str).
+    Use _groq_call_with_usage() when you need token counts.
+    """
+    data = _groq_call_with_usage(system, user)
+    return data["result"]
+
+
+def _groq_call_with_usage(system: str, user: str) -> dict:
+    """
+    Calls Groq API and returns a dict:
+      {
+        "result":        str,   # model response text
+        "model":         str,   # which model actually responded
+        "prompt_tokens": int,   # tokens used by system + user message
+        "output_tokens": int,   # tokens in the response
+        "total_tokens":  int,   # prompt + output combined
+        "limit":         int,   # context window size for that model
+        "limit_pct":     float, # percentage of context window used
+      }
+    Returns {"result": "", ...zeros...} if all models fail.
+    """
+    # Context window sizes per model
+    MODEL_LIMITS = {
+        "llama-3.3-70b-versatile": 128000,
+        "llama3-70b-8192":          8192,
+        "mixtral-8x7b-32768":      32768,
+        "gemma2-9b-it":             8192,
+    }
+    models = list(MODEL_LIMITS.keys())
+
     for model in models:
         try:
             response = client.chat.completions.create(
@@ -166,12 +237,38 @@ def _groq_call(system: str, user: str) -> str:
             )
             result = response.choices[0].message.content.strip()
             if result and len(result) > 20:
-                print(f"SUCCESS: {model}")
-                return result
+                # Extract real token usage from Groq response
+                usage = response.usage
+                prompt_tokens = usage.prompt_tokens  if usage else 0
+                output_tokens = usage.completion_tokens if usage else 0
+                total_tokens  = usage.total_tokens   if usage else 0
+                limit         = MODEL_LIMITS.get(model, 8192)
+                limit_pct     = round((total_tokens / limit) * 100, 1) if limit else 0
+
+                print(f"SUCCESS: {model} | prompt={prompt_tokens} out={output_tokens} total={total_tokens} ({limit_pct}% of {limit})")
+                return {
+                    "result":        result,
+                    "model":         model,
+                    "prompt_tokens": prompt_tokens,
+                    "output_tokens": output_tokens,
+                    "total_tokens":  total_tokens,
+                    "limit":         limit,
+                    "limit_pct":     limit_pct,
+                }
         except Exception as e:
             print(f"FAILED {model}: {str(e)[:100]}")
             continue
-    return ""
+
+    return {
+        "result":        "",
+        "model":         "",
+        "prompt_tokens": 0,
+        "output_tokens": 0,
+        "total_tokens":  0,
+        "limit":         0,
+        "limit_pct":     0.0,
+    }
+
 
 def _groq_explain(code: str, lang: str) -> str:
     try:
@@ -194,7 +291,7 @@ CODE:
 {code}
 
 ISSUES:"""
-        runtime = _execute_and_check(code) if lang == 'python' else ""
+        runtime = _execute_and_check(code, lang) if lang in ('python', 'c') else ""
         result  = _groq_call(system, user)
         combined = (result if result else _find_faults(code, lang))
         if runtime:

@@ -1,0 +1,662 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-VG3WRR6KB1"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'G-VG3WRR6KB1');
+</script>
+<meta charset="UTF-8">
+<meta name="google-site-verification" content="36sRSLEbYk3ZaYUam-VCQzh9aazXBdnGXtfa9RdxAME" />
+<link rel="icon" href="/static/favicon.ico" type="image/x-icon">
+<link rel="shortcut icon" href="/static/favicon.ico">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Anchor Elite AI | Neural Code Review</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+<!-- ══════════════════════════════════════════════════════
+     ANALYZING OVERLAY
+══════════════════════════════════════════════════════ -->
+<div id="analyzeOverlay">
+  <div class="overlay-card">
+    <div class="spinner-ring">
+      <svg viewBox="25 25 50 50" width="64" height="64">
+        <circle cx="50" cy="50" r="20" stroke="url(#grad)" />
+        <defs>
+          <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stop-color="#a855f7"/>
+            <stop offset="100%" stop-color="#c084fc"/>
+          </linearGradient>
+        </defs>
+      </svg>
+    </div>
+    <div>
+      <div class="overlay-title">Analyzing your code...</div>
+      <div class="overlay-step" id="overlayStep">Initializing neural engine</div>
+    </div>
+    <div style="width:100%">
+      <div class="overlay-bar-bg"><div class="overlay-bar" id="overlayBar"></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════
+     CONVERT MODAL
+══════════════════════════════════════════════════════ -->
+<div class="modal-backdrop" id="convertModal">
+  <div class="modal-card">
+    <button class="modal-close" onclick="closeConvert()">✕</button>
+    <div class="modal-title">⇄ Code Conversion</div>
+    <div class="modal-sub">Convert your code from one language to another using AI.</div>
+    <div class="modal-row">
+      <select class="modal-select" id="convertFrom">
+        <option value="python">🐍 Python</option>
+        <option value="java">☕ Java</option>
+        <option value="javascript">🟨 JavaScript</option>
+        <option value="typescript">🔷 TypeScript</option>
+        <option value="cpp">⚙ C++</option>
+        <option value="c">🔧 C</option>
+        <option value="go">🐹 Go</option>
+      </select>
+      <span class="modal-arrow">→</span>
+      <select class="modal-select" id="convertTo">
+        <option value="javascript">🟨 JavaScript</option>
+        <option value="python">🐍 Python</option>
+        <option value="java">☕ Java</option>
+        <option value="typescript">🔷 TypeScript</option>
+        <option value="cpp">⚙ C++</option>
+        <option value="c">🔧 C</option>
+        <option value="go">🐹 Go</option>
+      </select>
+    </div>
+    <div id="convertStatus" class="convert-result"></div>
+    <div class="modal-actions" style="margin-top:14px">
+      <button class="btn btn-primary" onclick="doConvert()" id="convertBtn" style="flex:1">⚡ Convert Code</button>
+      <button class="btn btn-ghost" onclick="closeConvert()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════
+     SIDE MODAL BACKDROP
+══════════════════════════════════════════════════════ -->
+<div class="modal-backdrop-side" id="sideBackdrop" onclick="closeAllSideModals()"></div>
+
+<!-- ══════════════════════════════════════════════════════
+     HISTORY SIDE MODAL
+══════════════════════════════════════════════════════ -->
+<div class="side-modal" id="sideHistory">
+  <div class="side-modal-header">
+    <span class="side-modal-title">⏱ Analysis History</span>
+    <div style="display:flex;gap:6px;align-items:center">
+      <button class="copy-btn-sm" id="clearHistoryBtn" onclick="clearAnalyzeHistory()">🗑 Clear</button>
+      <button class="side-modal-close" onclick="closeSideModal('sideHistory')">✕</button>
+    </div>
+  </div>
+  <div class="side-modal-body" id="historyBody">
+    <div class="modal-empty">
+      <div class="me-icon">⏱</div>
+      No analyses yet. Submit some code to get started.
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════
+     REPORTS SIDE MODAL
+══════════════════════════════════════════════════════ -->
+<div class="side-modal" id="sideReports">
+  <div class="side-modal-header">
+    <span class="side-modal-title">📊 Reports</span>
+    <button class="side-modal-close" onclick="closeSideModal('sideReports')">✕</button>
+  </div>
+  <div class="side-modal-body">
+    <div class="modal-empty">
+      <div class="me-icon">📊</div>
+      Reports are generated after code analysis. Run an analysis to see results here.
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════
+     DOCS SIDE MODAL
+══════════════════════════════════════════════════════ -->
+<div class="side-modal" id="sideDocs">
+  <div class="side-modal-header">
+    <span class="side-modal-title">📖 Documentation</span>
+    <button class="side-modal-close" onclick="closeSideModal('sideDocs')">✕</button>
+  </div>
+  <div class="side-modal-body">
+    <div class="settings-row">
+      <div class="settings-label">Quick Reference</div>
+      <div class="settings-option"><span>Paste code, select language</span><span style="color:var(--purple);font-size:11px">Step 1</span></div>
+      <div class="settings-option"><span>Click ⚡ Analyze &amp; Refactor</span><span style="color:var(--purple);font-size:11px">Step 2</span></div>
+      <div class="settings-option"><span>Review fixed code on the right</span><span style="color:var(--purple);font-size:11px">Step 3</span></div>
+      <div class="settings-option"><span>Download or copy corrected code</span><span style="color:var(--purple);font-size:11px">Step 4</span></div>
+    </div>
+    <div class="settings-row">
+      <div class="settings-label">Keyboard Shortcuts</div>
+      <div class="settings-option"><span>Analyze code</span><span style="font-family:monospace;font-size:11px;color:var(--muted)">Ctrl+Enter</span></div>
+      <div class="settings-option"><span>Clear editor</span><span style="font-family:monospace;font-size:11px;color:var(--muted)">Ctrl+K</span></div>
+    </div>
+    <div class="settings-row">
+      <div class="settings-label">Supported Languages</div>
+      <div class="settings-option"><span>🐍 Python</span><span style="color:var(--lime);font-size:11px">Full support</span></div>
+      <div class="settings-option"><span>☕ Java</span><span style="color:var(--lime);font-size:11px">Full support</span></div>
+      <div class="settings-option"><span>🟨 JavaScript</span><span style="color:var(--lime);font-size:11px">Full support</span></div>
+      <div class="settings-option"><span>🔧 C</span><span style="color:var(--lime);font-size:11px">Full support</span></div>
+      <div class="settings-option"><span>🔷 TypeScript</span><span style="color:var(--amber);font-size:11px">Partial</span></div>
+      <div class="settings-option"><span>⚙ C++ / 🐹 Go</span><span style="color:var(--amber);font-size:11px">Conversion only</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════
+     SETTINGS SIDE MODAL
+══════════════════════════════════════════════════════ -->
+<div class="side-modal" id="sideSettings">
+  <div class="side-modal-header">
+    <span class="side-modal-title">⚙ Settings</span>
+    <button class="side-modal-close" onclick="closeSideModal('sideSettings')">✕</button>
+  </div>
+  <div class="side-modal-body">
+    <div class="settings-row">
+      <div class="settings-label">Appearance</div>
+      <div class="settings-option">
+        <span>Dark Mode</span>
+        <div class="settings-toggle on" id="darkToggle" onclick="toggleTheme()"></div>
+      </div>
+    </div>
+    <div class="settings-row">
+      <div class="settings-label">Analysis</div>
+      <div class="settings-option">
+        <span>Auto-analyze on paste</span>
+        <div class="settings-toggle" id="autoAnalyze" onclick="this.classList.toggle('on')"></div>
+      </div>
+      <div class="settings-option">
+        <span>Security scan</span>
+        <div class="settings-toggle on" onclick="this.classList.toggle('on')"></div>
+      </div>
+      <div class="settings-option">
+        <span>Deep AST analysis</span>
+        <div class="settings-toggle on" onclick="this.classList.toggle('on')"></div>
+      </div>
+    </div>
+    <div class="settings-row">
+      <div class="settings-label">Editor</div>
+      <div class="settings-option">
+        <span>Show line numbers</span>
+        <div class="settings-toggle on" onclick="this.classList.toggle('on')"></div>
+      </div>
+      <div class="settings-option">
+        <span>Word wrap</span>
+        <div class="settings-toggle" onclick="this.classList.toggle('on')"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════
+     NOTIFICATIONS SIDE MODAL
+══════════════════════════════════════════════════════ -->
+<div class="side-modal" id="sideNotifs">
+  <div class="side-modal-header">
+    <span class="side-modal-title">🔔 Notifications</span>
+    <button class="side-modal-close" onclick="closeSideModal('sideNotifs')">✕</button>
+  </div>
+  <div class="side-modal-body">
+    <div class="history-item">
+      <div class="hi-lang" style="color:var(--rose)">🔴 CRITICAL</div>
+      <div class="hi-code">Security vulnerability found in last scan</div>
+      <div class="hi-meta"><span>SQL injection risk detected</span><span>just now</span></div>
+    </div>
+    <div class="history-item">
+      <div class="hi-lang" style="color:var(--lime)">✅ SUCCESS</div>
+      <div class="hi-code">Code analysis completed</div>
+      <div class="hi-meta"><span>Health score: {{ result.score }}/100</span><span>recently</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════
+     REFACTOR TIP SIDE PANEL
+══════════════════════════════════════════════════════ -->
+<div class="side-modal" id="sideRefactorTip">
+  <div class="side-modal-header">
+    <span class="side-modal-title" id="tipPanelTitle">Refactor Guide</span>
+    <button class="side-modal-close" onclick="closeSideModal('sideRefactorTip')">✕</button>
+  </div>
+  <div class="side-modal-body" id="tipPanelBody"></div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════
+     MOBILE BOTTOM NAV
+══════════════════════════════════════════════════════ -->
+<div class="mobile-nav">
+  <div class="mobile-nav-btn active" id="mnav-analyse" onclick="mobileNav('analyse')">
+    <span>⊞</span><span>Analyse</span>
+  </div>
+  <div class="mobile-nav-btn" id="mnav-history" onclick="mobileNav('history')">
+    <span>⏱</span><span>History</span>
+  </div>
+  <div class="mobile-nav-btn" id="mnav-reports" onclick="mobileNav('reports')">
+    <span>📊</span><span>Reports</span>
+  </div>
+  <div class="mobile-nav-btn" id="mnav-docs" onclick="mobileNav('docs')">
+    <span>📖</span><span>Docs</span>
+  </div>
+  <div class="mobile-nav-btn" id="mnav-settings" onclick="mobileNav('settings')">
+    <span>⚙</span><span>Settings</span>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════
+     SIDEBAR
+══════════════════════════════════════════════════════ -->
+<div class="sidebar">
+  <div class="sidebar-logo" onclick="showPage('analyse')" title="Home">⚓</div>
+  <div class="sidebar-icon active" id="sb-analyse" onclick="switchMode('review')" title="Code Review">⊞</div>
+  <div class="sidebar-icon" id="sb-assistant" onclick="switchMode('assistant')" title="AI Assistant">✦</div>
+  <div class="sidebar-icon" id="sb-history" onclick="openSideModal('sideHistory')" title="History">⏱</div>
+  <div class="sidebar-divider"></div>
+  <div class="sidebar-icon" onclick="openSideModal('sideReports')" title="Reports">📊</div>
+  <div class="sidebar-icon" onclick="openSideModal('sideDocs')" title="Documentation">📖</div>
+  <div class="sidebar-bottom">
+    <div class="theme-icon" onclick="toggleTheme()" title="Toggle theme" id="themeIcon">🌙</div>
+    <div class="theme-toggle" onclick="toggleTheme()" title="Toggle theme"></div>
+    <div class="sidebar-divider"></div>
+    <div class="sidebar-icon" onclick="openSideModal('sideSettings')" title="Settings">⚙</div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════
+     MAIN
+══════════════════════════════════════════════════════ -->
+<div class="main">
+
+  <!-- TOPBAR -->
+  <div class="topbar">
+    <span class="topbar-logo">Anchor <span>Elite AI</span></span>
+
+    <div class="sep"></div>
+
+    <!-- Mode tabs -->
+    <div class="mode-tabs" id="modeTabs">
+      <button class="mode-tab active" data-mode="review" onclick="switchMode('review')">
+        <span class="tab-dot"></span><span class="tab-text">Code Review</span>
+      </button>
+      <button class="mode-tab" data-mode="assistant" onclick="switchMode('assistant')">
+        <span class="tab-dot"></span><span class="tab-text">AI Assistant</span>
+      </button>
+    </div>
+
+    <div class="sep" id="reviewOnlySep"></div>
+
+    <!-- Language selector (review mode only) -->
+    <div class="lang-group" id="reviewLangGroup">
+      <button class="lang-btn {% if lang=='python' %}active{% endif %}" id="lang-python" onclick="setLang('python')">🐍 Python</button>
+      <button class="lang-btn {% if lang=='java' %}active{% endif %}" id="lang-java" onclick="setLang('java')">☕ Java</button>
+      <button class="lang-btn {% if lang=='javascript' %}active{% endif %}" id="lang-js" onclick="setLang('javascript')">🟨 JS</button>
+      <button class="lang-btn {% if lang=='c' %}active{% endif %}" id="lang-c" onclick="setLang('c')">⚙ C</button>
+    </div>
+
+    <div class="sep" id="reviewConvertSep"></div>
+
+    <!-- Code Convert (review mode only) -->
+    <button class="convert-btn" id="reviewConvertBtn" onclick="openConvert()">⇄ Convert</button>
+
+    <div class="topbar-right">
+      <div class="icon-btn notif-badge" title="Notifications" onclick="openSideModal('sideNotifs')">🔔</div>
+      <div class="icon-btn" title="Settings" onclick="openSideModal('sideSettings')">⚙</div>
+      <div class="avatar" onclick="openSideModal('sideSettings')" title="Profile">AE</div>
+    </div>
+  </div>
+
+  <!-- CONTENT -->
+  <div class="content">
+
+    <!-- ═══════════ ANALYSE PAGE ═══════════ -->
+    <div id="page-analyse" class="analyse-page">
+
+      <!-- Stats -->
+      <div class="stats-row">
+        <div class="health-card">
+          <div class="health-gauge-wrap"><canvas id="gaugeChart" width="64" height="64"></canvas></div>
+          <div>
+            <div class="score-num">{{ result.score }}</div>
+            <div class="score-label">Health Score</div>
+            <div class="score-status {% if result.score >= 85 %}status-good{% elif result.score >= 50 %}status-warn{% elif result.score > 0 %}status-crit{% endif %}">
+              {% if result.score == 0 %}—
+              {% elif result.score >= 85 %}Good Stand
+              {% elif result.score >= 50 %}Needs Work
+              {% else %}Critical{% endif %}
+            </div>
+          </div>
+        </div>
+        <div class="stat-card"><div class="stat-label">🐛 Critical</div><div class="stat-num">{{ result.critical_count }}</div></div>
+        <div class="stat-card"><div class="stat-label">✦ Optims</div><div class="stat-num">{{ result.optims_count }}</div></div>
+        <div class="stat-card"><div class="stat-label">🛡 Security</div><div class="stat-num">{{ result.security_count }}</div></div>
+        <div class="stat-card"><div class="stat-label">⚡ Latency</div><div class="stat-num" style="font-size:18px">{{ result.latency }}</div></div>
+      </div>
+
+      <!-- Code panels -->
+      <div class="panels-row">
+
+        <!-- LEFT: Input panel -->
+        <div class="panel">
+          <div class="panel-header">
+            <div class="panel-title">
+              📄 Input Source
+              <span class="panel-tag" id="fileTagLabel">main.{{ lang_ext }}</span>
+            </div>
+            <span style="font-size:10px;color:var(--muted)" id="codeStats">{{ result.lines }} ln · {{ result.chars }} ch</span>
+          </div>
+
+          <form method="POST" id="mainForm" onsubmit="showAnalyzeOverlay(event)">
+            <input type="hidden" name="lang" id="langHidden" value="{{ lang }}">
+            <!-- code area fills all available form height -->
+            <div class="code-area">
+              <div class="line-nums" id="lineNums">{% for i in range(1, [result.lines+2,3]|max) %}{{ i }}
+{% endfor %}</div>
+              <div class="code-scroll-inner">
+                <textarea name="code" id="codeInput" class="code-input"
+                  placeholder="// Paste your code here...&#10;// Ctrl+Enter to analyse"
+                  oninput="syncLines(this);updateStats(this)"
+                  onscroll="document.getElementById('lineNums').scrollTop=this.scrollTop">{{ code }}</textarea>
+              </div>
+            </div>
+            <div class="panel-actions">
+              <button type="submit" class="btn btn-primary" id="analyzeBtn">⚡ Analyze &amp; Refactor</button>
+              <button type="button" class="btn btn-ghost" onclick="clearCode()">Clear</button>
+            </div>
+          </form>
+        </div>
+
+        <!-- RIGHT: Output panel -->
+        <div class="panel" style="flex:1.1">
+          <div class="panel-header">
+            <div class="panel-title">✦ Corrected Code</div>
+            <div style="display:flex;gap:6px">
+              {% if result.diff %}<button class="copy-btn-sm" id="diffToggleBtn" onclick="toggleDiffView()">⇄ Diff View</button>{% endif %}
+              <button class="copy-btn-sm" id="copyBtn" onclick="copyCode()">⎘ Copy</button>
+              {% if result.full_code %}<button class="copy-btn-sm" onclick="downloadCode()">⬇ Download</button>{% endif %}
+            </div>
+          </div>
+
+          {% if result.full_code %}
+            <div class="corrected-body" id="correctedCode">{{ result.full_code }}</div>
+            {% if result.diff %}
+            <div class="diff-body" id="diffView" style="display:none">
+              {% for row in result.diff %}
+                {% if row.type == 'equal' %}
+                <div class="diff-row diff-equal"><span class="diff-gutter">{{ row.new_no }}</span><span class="diff-marker"> </span><span class="diff-text">{{ row.new_line }}</span></div>
+                {% elif row.type == 'replace' %}
+                  {% if row.old_line is not none %}
+                  <div class="diff-row diff-delete"><span class="diff-gutter">{{ row.old_no }}</span><span class="diff-marker">−</span><span class="diff-text">{{ row.old_line }}</span></div>
+                  {% endif %}
+                  {% if row.new_line is not none %}
+                  <div class="diff-row diff-insert"><span class="diff-gutter">{{ row.new_no }}</span><span class="diff-marker">+</span><span class="diff-text">{{ row.new_line }}</span></div>
+                  {% endif %}
+                {% elif row.type == 'delete' %}
+                <div class="diff-row diff-delete"><span class="diff-gutter">{{ row.old_no }}</span><span class="diff-marker">−</span><span class="diff-text">{{ row.old_line }}</span></div>
+                {% elif row.type == 'insert' %}
+                <div class="diff-row diff-insert"><span class="diff-gutter">{{ row.new_no }}</span><span class="diff-marker">+</span><span class="diff-text">{{ row.new_line }}</span></div>
+                {% endif %}
+              {% endfor %}
+            </div>
+            {% endif %}
+            <div class="optim-badge">
+              ✦ OPTIMIZATION APPLIED
+              <div class="optim-desc">{{ result.msg }}</div>
+              {% if result.verify_note %}
+              <div class="optim-desc" style="margin-top:4px;{% if result.verified %}color:var(--lime, #84cc16){% else %}color:var(--amber, #f59e0b){% endif %}">
+                {{ result.verify_note }}
+              </div>
+              {% endif %}
+              {% if result.corrected_score is defined and result.corrected_score != result.score %}
+              <div class="optim-desc" style="margin-top:4px">
+                Score: {{ result.score }} → <strong>{{ result.corrected_score }}</strong>
+                {% if result.improved %}✓{% endif %}
+              </div>
+              {% endif %}
+            </div>
+          {% else %}
+            <div class="empty-state">
+              <div class="es-icon">✦</div>
+              <div class="es-txt">Corrected code appears here after analysis</div>
+            </div>
+          {% endif %}
+
+          <div class="panel-actions">
+            {% if result.full_code %}
+              <button class="btn btn-lime" onclick="downloadCode()" style="flex:1">⬇ Download Fixed Code</button>
+            {% else %}
+              <div style="font-size:11px;color:var(--muted);padding:4px 0">— Submit code to see corrected version —</div>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+
+      <!-- Fault panel -->
+      {% if result.old_line %}
+      <div class="fault-panel">
+        <div class="fault-header">❌ Fault Location &amp; Explanation</div>
+        <div class="fault-body">{{ result.old_line }}</div>
+      </div>
+      {% endif %}
+
+      <!-- Recommended Refactors -->
+      <div class="refactors-section">
+        <div class="section-label">Recommended Refactors</div>
+        <div class="refactors-row">
+          <div class="refactor-card" onclick="applyRefactor('decouple')">
+            <div class="refactor-icon ri-purple">🔗</div>
+            <div class="refactor-info">
+              <div class="ri-title">Decouple API Logic</div>
+              <div class="ri-sub">Extract endpoints into config provider.</div>
+            </div>
+            <span class="refactor-arrow">›</span>
+          </div>
+          <div class="refactor-card" onclick="applyRefactor('lazy')">
+            <div class="refactor-icon ri-amber">✦</div>
+            <div class="refactor-info">
+              <div class="ri-title">Lazy Load Modules</div>
+              <div class="ri-sub">Reduce ML startup latency.</div>
+            </div>
+            <span class="refactor-arrow">›</span>
+          </div>
+          <div class="refactor-card" onclick="applyRefactor('sanitize')">
+            <div class="refactor-icon ri-rose">🛡</div>
+            <div class="refactor-info">
+              <div class="ri-title">Sanitize Inputs</div>
+              <div class="ri-sub">Fix SQL Injection risks.</div>
+            </div>
+            <span class="refactor-arrow">›</span>
+          </div>
+          <div class="refactor-card" onclick="applyRefactor('convert')">
+            <div class="refactor-icon ri-sky">⇄</div>
+            <div class="refactor-info">
+              <div class="ri-title">Convert Language</div>
+              <div class="ri-sub">Translate to another language.</div>
+            </div>
+            <span class="refactor-arrow">›</span>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /analyse-page -->
+
+    <!-- ═══════════ AI ASSISTANT PAGE ═══════════ -->
+    <div id="page-assistant" class="assistant-page">
+
+      <!-- Header -->
+      <div class="asst-header">
+        <div class="asst-badge">
+          <div class="asst-badge-dot"></div>
+          <span class="asst-badge-text">AI ASSISTANT</span>
+        </div>
+        <span class="asst-model-tag">claude-sonnet-4</span>
+        <div style="margin-left:auto;display:flex;gap:6px">
+          <div class="asst-mode-pill" id="asstModePill1">⚡ Generate</div>
+          <div class="asst-mode-pill" id="asstModePill2">✎ Modify</div>
+        </div>
+      </div>
+
+      <!-- Main grid -->
+      <div class="asst-grid">
+
+        <!-- LEFT: Inputs -->
+        <div class="asst-input-col">
+
+          <!-- Suggestions -->
+          <div>
+            <div class="asst-section-label">Quick prompts</div>
+            <div class="asst-suggestions">
+              <div class="asst-suggestion" onclick="fillPrompt('Optimize this code for performance')">⚡ Optimize</div>
+              <div class="asst-suggestion" onclick="fillPrompt('Add error handling and input validation')">🛡 Add error handling</div>
+              <div class="asst-suggestion" onclick="fillPrompt('Write unit tests for this code')">🧪 Write tests</div>
+              <div class="asst-suggestion" onclick="fillPrompt('Add detailed docstrings and comments')">📝 Document</div>
+              <div class="asst-suggestion" onclick="fillPrompt('Refactor to use design patterns')">🏗 Refactor</div>
+              <div class="asst-suggestion" onclick="fillPrompt('Convert to async/await pattern')">⟳ Async</div>
+            </div>
+          </div>
+
+          <!-- Prompt input -->
+          <div>
+            <div class="asst-section-label">Your prompt</div>
+            <div class="asst-prompt-wrap">
+              <div class="asst-prompt-header">✦ What should the AI do?</div>
+              <textarea class="asst-prompt" id="asstPrompt" placeholder="e.g. Optimize this function for speed, fix the bug in line 12, generate a binary search algorithm..."
+                oninput="updateAsstMode();updateCharCount(this)"></textarea>
+              <div class="asst-prompt-footer">
+                <span class="asst-char-count" id="asstCharCount">0 / 2000</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Optional code -->
+          <div style="flex:1;min-height:0;display:flex;flex-direction:column">
+            <div class="asst-section-label">Code to modify <span style="font-size:9px;color:var(--muted2);font-weight:400;text-transform:none;letter-spacing:0">(leave blank to generate new)</span></div>
+            <div class="asst-code-wrap">
+              <div class="asst-code-header">
+                <span class="asst-code-label">📄 Paste code here</span>
+                <span class="asst-optional-pill">optional</span>
+              </div>
+              <div class="asst-code-area">
+                <div class="asst-line-nums" id="asstLineNums">1
+</div>
+                <div class="asst-code-scroll">
+                  <textarea class="asst-code-input" id="asstCode"
+                    placeholder="// Paste existing code here if you want to modify it&#10;// Leave empty to generate fresh code"
+                    oninput="syncAsstLines(this);updateAsstMode()"
+                    onscroll="document.getElementById('asstLineNums').scrollTop=this.scrollTop"></textarea>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Submit -->
+          <button class="asst-submit-btn" id="asstSubmitBtn" onclick="runAssistant()">
+            <span id="asstBtnIcon">✦</span>
+            <span id="asstBtnText">Generate Code</span>
+          </button>
+
+        </div><!-- /asst-input-col -->
+
+        <!-- RIGHT: Output -->
+        <div class="asst-output-col">
+          <div class="asst-output-panel">
+            <div class="asst-output-header">
+              <div class="asst-output-title">
+                <span id="asstOutputDot" style="width:7px;height:7px;border-radius:50%;background:var(--muted2);display:inline-block;transition:background .3s"></span>
+                <span id="asstOutputLabel">Output</span>
+              </div>
+              <div style="display:flex;gap:6px">
+                <button class="copy-btn-sm" id="asstCopyBtn" onclick="copyAsstOutput()" style="display:none">⎘ Copy</button>
+                <button class="copy-btn-sm" id="asstDownloadBtn" onclick="downloadAsstOutput()" style="display:none">⬇ Download</button>
+                <button class="copy-btn-sm" id="asstClearBtn" onclick="clearAsstOutput()" style="display:none">✕ Clear</button>
+              </div>
+            </div>
+
+            <!-- Empty state -->
+            <div class="asst-output-empty" id="asstEmptyState">
+              <div class="asst-empty-icon">✦</div>
+              <div class="asst-empty-text">Enter a prompt and click Generate — AI output will appear here, ready to copy or download.</div>
+            </div>
+
+            <!-- Loading -->
+            <div class="asst-loading" id="asstLoading">
+              <div class="asst-loading-ring">
+                <svg viewBox="25 25 50 50" width="48" height="48">
+                  <circle cx="50" cy="50" r="20" stroke="url(#asstGrad)"/>
+                  <defs>
+                    <linearGradient id="asstGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                      <stop offset="0%" stop-color="#38bdf8"/>
+                      <stop offset="100%" stop-color="#a855f7"/>
+                    </linearGradient>
+                  </defs>
+                </svg>
+              </div>
+              <div>
+                <div class="asst-loading-text">AI is working...</div>
+                <div class="asst-loading-steps" id="asstLoadingStep">Connecting to model</div>
+              </div>
+            </div>
+
+            <!-- Error -->
+            <div class="asst-error" id="asstError"></div>
+
+            <!-- Output body -->
+            <div class="asst-output-body" id="asstOutput" style="display:none"></div>
+
+            <div class="asst-output-footer" id="asstOutputFooter" style="display:none">
+              <button class="btn btn-ghost" style="font-size:11px;padding:6px 12px" onclick="copyAsstOutput()">⎘ Copy Code</button>
+              <button class="btn btn-ghost" style="font-size:11px;padding:6px 12px;color:var(--lime);border-color:rgba(132,204,22,.25)" onclick="sendToReview()">→ Send to Review</button>
+              <span style="margin-left:auto;font-size:10px;color:var(--muted)" id="asstTokenCount"></span>
+            </div>
+          </div>
+
+          <!-- Meta bar -->
+          <div class="asst-meta-bar" id="asstMetaBar" style="display:none">
+            <div class="asst-meta-item">Mode <span class="asst-meta-val" id="metaMode">—</span></div>
+            <div class="asst-meta-item">Model <span class="asst-meta-val" id="metaModel">—</span></div>
+            <div class="asst-meta-item" title="Tokens used by your prompt + code">In <span class="asst-meta-val" id="metaPromptTok">—</span></div>
+            <div class="asst-meta-item" title="Tokens in the AI response">Out <span class="asst-meta-val" id="metaOutputTok">—</span></div>
+            <div class="asst-meta-item" title="Total tokens used">Total <span class="asst-meta-val" id="metaTokens">—</span></div>
+            <div class="asst-meta-item" title="Context window used">
+              Limit
+              <span class="asst-meta-val" id="metaLimitPct">—</span>
+              <div id="metaLimitBar" style="width:60px;height:4px;background:var(--surface3);border-radius:4px;overflow:hidden;margin-left:4px">
+                <div id="metaLimitFill" style="height:100%;border-radius:4px;transition:width .4s,background .4s;width:0%"></div>
+              </div>
+            </div>
+            <div class="asst-meta-item">Time <span class="asst-meta-val" id="metaTime">—</span></div>
+            <div class="asst-meta-item">Lines <span class="asst-meta-val" id="metaLines">—</span></div>
+          </div>
+
+          <!-- Past outputs strip -->
+          <div class="asst-history-strip" id="asstHistoryStrip" style="display:none"></div>
+
+        </div><!-- /asst-output-col -->
+      </div><!-- /asst-grid -->
+
+    </div><!-- /assistant-page -->
+
+  </div><!-- /content -->
+</div><!-- /main -->
+
+<!-- ══════════════════════════════════════════════════════
+     SCRIPTS
+══════════════════════════════════════════════════════ -->
+<script>window.__ANCHOR_SCORE__ = {{ result.score }};</script>
+<script src="{{ url_for('static', filename='app.js') }}"></script>
+</body>
+</html>

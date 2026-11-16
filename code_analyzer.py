@@ -451,33 +451,66 @@ def _cache_set(key: str, data: dict):
 
 
 def _estimate_max_tokens(user_prompt: str) -> int:
-    """Sizes the output token ceiling to the actual input instead of always
-    allowing room for the maximum — generation time scales with the number
-    of tokens produced, so a short snippet shouldn't pay for headroom a
-    20,000-char submission would need. Rough rule of thumb: ~4 chars/token,
-    and a fixed/explained response rarely exceeds ~1.3x the input length in
-    tokens. Floored so tiny inputs still get enough room for a full
-    explanation, ceilinged at the old flat 2000 for large inputs."""
-    return max(500, min(2000, int(len(user_prompt) / 4 * 1.3)))
+    """Output-token ceiling for one Groq call.
+
+    ROOT CAUSE of the "only got `import threading` / `class Account:`" bug:
+    the models in use (openai/gpt-oss-*) are REASONING models. Their hidden
+    thinking tokens are counted against max_tokens too, so the old small
+    ceiling (~1.3x the prompt, capped at 2000) was spent on thinking and the
+    visible answer was cut off after a line or two. So: generous floor,
+    generous cap, and room for reasoning on top of the code itself.
+    """
+    est = int(len(user_prompt) / 4 * 2) + 1500
+    return max(2500, min(8192, est))
+
+
+def _model_extras(model: str) -> dict:
+    """Per-model request extras. gpt-oss models think before answering; ask
+    for LOW reasoning effort so the budget goes to the actual code."""
+    if "gpt-oss" in model:
+        return {"extra_body": {"reasoning_effort": "low"}}
+    return {}
 
 
 def _try_models_once(system: str, user: str, model_limits: dict):
     """Attempts every model in model_limits, in order, once each. Returns a
     result dict on the first success, or None if every model failed.
-    Shared by the two-pass retry logic in _groq_call_with_usage."""
+    Shared by the two-pass retry logic in _groq_call_with_usage.
+
+    A response that stopped because it hit the token ceiling
+    (finish_reason == "length") is NEVER accepted as a result — that is a
+    half-written answer. It is retried once with a doubled budget, and if it
+    is still cut off the model is skipped."""
     for model in model_limits:
-        try:
-            response = client.chat.completions.create(
-                model=model,
-                messages=[
-                    {"role": "system", "content": system},
-                    {"role": "user",   "content": user}
-                ],
-                max_tokens=_estimate_max_tokens(user),
-                temperature=0.1,
-                timeout=10,  # was 20s — a dead/decommissioned model should fail fast, not stall the whole request
-            )
-            result = response.choices[0].message.content.strip()
+        base = _estimate_max_tokens(user)
+        budgets = [base, min(base * 2, 16384)]
+        for i, budget in enumerate(budgets):
+            try:
+                response = client.chat.completions.create(
+                    model=model,
+                    messages=[
+                        {"role": "system", "content": system},
+                        {"role": "user",   "content": user}
+                    ],
+                    max_tokens=budget,
+                    temperature=0.1,
+                    timeout=30,
+                    **_model_extras(model),
+                )
+            except Exception as e:
+                log.warning(f"FAILED {model}: {str(e)[:100]}")
+                break  # next model
+
+            choice = response.choices[0]
+            result = (choice.message.content or "").strip()
+
+            if choice.finish_reason == "length":
+                log.warning(f"TRUNCATED {model} at max_tokens={budget}"
+                            + (" — retrying with a larger budget" if i < len(budgets) - 1 else " — skipping model"))
+                if i < len(budgets) - 1:
+                    continue
+                break
+
             if result and len(result) > 20:
                 usage = response.usage
                 prompt_tokens = usage.prompt_tokens  if usage else 0
@@ -497,9 +530,7 @@ def _try_models_once(system: str, user: str, model_limits: dict):
                     "limit":         limit,
                     "limit_pct":     limit_pct,
                 }
-        except Exception as e:
-            log.warning(f"FAILED {model}: {str(e)[:100]}")
-            continue
+            break  # empty / too-short answer — next model
     return None
 
 
@@ -591,6 +622,7 @@ def _stream_models_once(system: str, user: str, model_limits: dict):
     for model in model_limits:
         got_any = False
         full_text = []
+        finish_reason = None
         prompt_tokens = output_tokens = total_tokens = 0
         try:
             stream = client.chat.completions.create(
@@ -601,10 +633,13 @@ def _stream_models_once(system: str, user: str, model_limits: dict):
                 ],
                 max_tokens=_estimate_max_tokens(user),
                 temperature=0.1,
-                timeout=10,  # was 20s — fail fast on a dead model instead of stalling
+                timeout=30,
                 stream=True,
+                **_model_extras(model),
             )
             for chunk in stream:
+                if chunk.choices and getattr(chunk.choices[0], "finish_reason", None):
+                    finish_reason = chunk.choices[0].finish_reason
                 delta = chunk.choices[0].delta.content if chunk.choices else None
                 if delta:
                     got_any = True
@@ -640,6 +675,9 @@ def _stream_models_once(system: str, user: str, model_limits: dict):
             "type": "done", "model": model, "prompt_tokens": prompt_tokens,
             "output_tokens": output_tokens, "total_tokens": total_tokens,
             "limit": limit, "limit_pct": limit_pct, "_result_text": result,
+            # True if the model hit the token ceiling mid-answer, so the UI can
+            # warn instead of silently showing half a program.
+            "truncated": finish_reason == "length",
         }
         return
 
@@ -740,7 +778,120 @@ ISSUES:"""
     except Exception:
         return _find_faults(code, lang)
 
-def _groq_fix(code: str, lang: str, max_retries: int = 1, time_budget: float = 9.0) -> dict:
+
+# ── Local (no-AI) syntax repair ─────────────────────────────────────────────
+# Fixes the beginner slips that most often break a program outright: a bracket
+# that was never closed (e.g. `print(is_topper`), a missing colon after
+# def/if/for/..., and an empty block. Deterministic, so it works even when the
+# model is down, slow, or truncated. It is applied to the user's INPUT only —
+# never to model output, because "repairing" a half-written model answer with
+# `pass` would hide the truncation and look verified when it isn't.
+_OPENERS = {'(': ')', '[': ']', '{': '}'}
+_CLOSERS = set(_OPENERS.values())
+_BLOCK_START = re.compile(r'^\s*(def|class|if|elif|else|for|while|try|except|finally|with|async\s+def)\b')
+
+
+def _unclosed_brackets(code: str):
+    """Scan python source (skipping strings and comments). Returns the list of
+    still-open brackets as (char, line_index) in the order they were opened."""
+    stack, i, n, line = [], 0, len(code), 0
+    while i < n:
+        c = code[i]
+        if c == '\n':
+            line += 1
+        elif c == '#':
+            while i < n and code[i] != '\n':
+                i += 1
+            continue
+        elif c in ('"', "'"):
+            q = code[i:i + 3]
+            if q in ('"""', "\'\'\'"):
+                j = code.find(q, i + 3)
+                j = n if j == -1 else j + 3
+                line += code.count('\n', i, j)
+                i = j
+                continue
+            j = i + 1
+            while j < n and code[j] != c and code[j] != '\n':
+                j += 2 if code[j] == '\\' else 1
+            i = j + 1
+            continue
+        elif c in _OPENERS:
+            stack.append((c, line))
+        elif c in _CLOSERS:
+            if stack and _OPENERS[stack[-1][0]] == c:
+                stack.pop()
+        i += 1
+    return stack
+
+
+def _local_syntax_repair(code: str, max_passes: int = 20) -> str:
+    """Best-effort deterministic repair of common python syntax errors.
+    Returns the repaired code, or the original text if it can't be fixed."""
+    current = code
+    for _ in range(max_passes):
+        try:
+            ast.parse(current)
+            return current
+        except SyntaxError as e:
+            msg = (e.msg or "").lower()
+            lines = current.split("\n")
+            changed = False
+
+            # 1) unclosed brackets -> close them at the end of the line that opened them
+            stack = _unclosed_brackets(current)
+            if stack:
+                per_line = {}
+                for ch, ln in stack:
+                    per_line.setdefault(ln, []).append(_OPENERS[ch])
+                for ln in sorted(per_line, reverse=True):
+                    body, comment = lines[ln], ''
+                    # keep any trailing comment after the inserted closers
+                    m = re.search(r'\s+#.*$', body)
+                    if m and body.count('"') % 2 == 0 and body.count("'") % 2 == 0:
+                        body, comment = body[:m.start()], body[m.start():]
+                    lines[ln] = body.rstrip() + ''.join(reversed(per_line[ln])) + comment
+                current, changed = "\n".join(lines), True
+                continue
+
+            # 2) missing colon on a def/if/for/... line
+            ln = (e.lineno or 1) - 1
+            if "expected ':'" in msg or "invalid syntax" in msg:
+                for k in (ln, ln - 1):
+                    if 0 <= k < len(lines) and _BLOCK_START.match(lines[k]) \
+                            and not lines[k].rstrip().endswith(':'):
+                        lines[k] = lines[k].rstrip() + ':'
+                        changed = True
+                        break
+
+            # 3) block header with no body -> add `pass`
+            if not changed and "expected an indented block" in msg:
+                k = min(ln, len(lines) - 1)
+                while k > 0 and not lines[k].rstrip().endswith(':'):
+                    k -= 1
+                indent = re.match(r'\s*', lines[k]).group(0) + '    '
+                lines.insert(k + 1, indent + 'pass')
+                changed = True
+
+            if not changed:
+                return code
+            current = "\n".join(lines)
+    return code
+
+
+def _extract_code(raw: str) -> str:
+    """Pull the code out of a model reply: prefer the first fenced block if the
+    model ignored 'no markdown'; otherwise just strip stray fences."""
+    raw = raw.strip()
+    m = re.search(r"```[\w+-]*\n(.*?)```", raw, re.S)
+    if m and m.group(1).strip():
+        return m.group(1).strip()
+    raw = re.sub(r'^```[\w+-]*\n?', '', raw)
+    raw = re.sub(r'\n?```$', '', raw)
+    return raw.strip()
+
+
+def _groq_fix(code: str, lang: str, max_retries: int = 1, time_budget: float = 25.0) -> dict:
     """
     Fixes bugs in `code`, then — for languages we can actually run locally
     (python: real execution, c: compile check) — VERIFIES the fix by running
@@ -804,6 +955,16 @@ Fix ALL of these if present:
 - Recursion without base case — add base case
 - == None — use is None
 - Class variables shared across instances — move to constructor
+- Race conditions on shared data between threads — protect with threading.Lock
+- Generators used twice (second use is empty) — build a list once
+- tuple item += on a list inside a tuple — extend the list explicitly instead
+- __eq__ defined without __hash__ — add __hash__ (objects used in sets/dicts)
+- Shadowing built-ins (list, dict, str, sum) — rename the variable
+- Comparing floats with == — use math.isclose
+- 'is' used to compare values — use ==
+- Lambdas created in a loop capturing the loop variable — bind it as a default arg
+- Deleting from a dict/list while looping over it — build a new one instead
+- Unclosed brackets or missing colons — fix the syntax and keep the full program
 - Wrong formula logic — fix the math
 - Wrong operators like =+ — fix to +=
 - Missing parentheses wrong order of operations
@@ -827,9 +988,15 @@ BUGGY CODE:
 FIXED CODE:"""
 
     def _clean(raw: str) -> str:
-        raw = re.sub(r'^```[\w]*\n?', '', raw)
-        raw = re.sub(r'\n?```$', '', raw)
-        return raw.strip()
+        return _extract_code(raw)
+
+    # Python input with a syntax slip (unclosed bracket, missing colon, ...):
+    # repair it locally first so the model reasons about the program's LOGIC
+    # instead of being derailed by the typo, and so we always have a
+    # parseable fallback even if the model is unavailable or truncated.
+    if lang == 'python':
+        code = _local_syntax_repair(code)
+        user_base = re.sub(r"BUGGY CODE:\n.*\n\nFIXED CODE:", lambda m: f"BUGGY CODE:\n{code}\n\nFIXED CODE:", user_base, flags=re.S)
 
     attempt = 0
     current_error = None
@@ -858,6 +1025,17 @@ FIXED CODE:"""
         if len(fixed) <= 20:
             fixed = _pattern_fix(code, lang)
             break
+
+        # A python answer that does not even parse (cut off, or a bad edit) is
+        # never returned as "the fix": feed the exact syntax error back for a
+        # retry instead of showing half a program.
+        if lang == 'python':
+            try:
+                ast.parse(fixed)
+            except SyntaxError as se:
+                current_error = f"SyntaxError: {se.msg} (line {se.lineno}). Return the COMPLETE program."
+                fixed = None
+                continue
 
         # Verify: only python (real execution) and c (compile check) have a
         # local backend. Java/JS get one shot, unverified.

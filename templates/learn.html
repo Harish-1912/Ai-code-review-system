@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Teach Anchor Elite</title>
+<style>
+  :root { --bg:#f6f7f9; --card:#fff; --text:#1c1f24; --muted:#6b7280; --line:#d9dce1; --accent:#2563eb; --ok:#15803d; --bad:#b91c1c; }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg:#0f1115; --card:#181b21; --text:#e8eaee; --muted:#9aa1ad; --line:#2b3039; --accent:#5b8def; --ok:#4ade80; --bad:#f87171; }
+  }
+  * { box-sizing: border-box; }
+  body { margin:0; font-family: system-ui, Segoe UI, sans-serif; background:var(--bg); color:var(--text); }
+  .wrap { max-width: 1000px; margin: 0 auto; padding: 24px 16px 60px; }
+  h1 { margin: 0 0 4px; font-size: 24px; }
+  p.sub { margin: 0 0 20px; color: var(--muted); }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:16px; margin-bottom:16px; }
+  .grid { display:grid; grid-template-columns: 1fr 1fr; gap:12px; }
+  @media (max-width: 720px) { .grid { grid-template-columns: 1fr; } }
+  label { display:block; font-weight:600; font-size:14px; margin-bottom:6px; }
+  textarea { width:100%; min-height:280px; resize:vertical; padding:10px; border:1px solid var(--line); border-radius:8px;
+             background:var(--bg); color:var(--text); font: 13px/1.5 Consolas, Menlo, monospace; }
+  select, input[type=password] { padding:8px 10px; border:1px solid var(--line); border-radius:8px; background:var(--bg); color:var(--text); }
+  input[type=password] { min-width: 260px; }
+  .row { display:flex; gap:12px; align-items:center; flex-wrap:wrap; margin-top:12px; }
+  button { padding:9px 18px; border:0; border-radius:8px; background:var(--accent); color:#fff; font-weight:600; cursor:pointer; }
+  button.small { padding:5px 10px; font-size:12px; background:transparent; color:var(--bad); border:1px solid var(--line); }
+  button:disabled { opacity:.6; cursor:wait; }
+  #msg { font-size:14px; white-space:pre-wrap; }
+  #msg.ok { color:var(--ok); } #msg.bad { color:var(--bad); }
+  .entry { border-top:1px solid var(--line); padding:12px 0; }
+  .entry:first-child { border-top:0; }
+  .entry pre { margin:6px 0; padding:8px; background:var(--bg); border-radius:6px; overflow-x:auto; font-size:12px; max-height:140px; }
+  .meta { color:var(--muted); font-size:12px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <p><a href="/" style="color:var(--accent);text-decoration:none">&larr; Back to Analyzer</a></p>
+  <h1>Teach Anchor Elite</h1>
+  <p class="sub">Paste the code it got wrong, and the corrected version from another source. Next time it sees the same or similar code, it will use your fix.</p>
+
+  <div class="card">
+    <div class="grid">
+      <div>
+        <label for="buggy">1. Original code (the one that was wrong)</label>
+        <textarea id="buggy" spellcheck="false" placeholder="Paste the original buggy code here"></textarea>
+      </div>
+      <div>
+        <label for="fixed">2. Corrected code (paste the correct version here)</label>
+        <textarea id="fixed" spellcheck="false" placeholder="Paste the corrected code here"></textarea>
+      </div>
+    </div>
+
+    <div class="row">
+      <div>
+        <label for="key">3. Your key</label>
+        <input type="password" id="key" placeholder="Enter your key" autocomplete="off">
+      </div>
+      <div>
+        <label for="lang">Language</label>
+        <select id="lang">
+          <option value="python">Python</option>
+          <option value="javascript">JavaScript</option>
+          <option value="java">Java</option>
+          <option value="c">C</option>
+        </select>
+      </div>
+    </div>
+    <div class="meta" id="keyHelp" style="margin-top:8px"></div>
+
+    <div class="row">
+      <button id="teachBtn">Teach it</button>
+      <span id="msg"></span>
+    </div>
+  </div>
+
+  <div class="card">
+    <strong>What it has learned</strong> <span class="meta" id="total"></span>
+    <div id="list"></div>
+  </div>
+</div>
+
+<script>
+  const $ = (id) => document.getElementById(id);
+  const KEY_NAME = "ae_admin_key";
+
+  const headers = () => {
+    const h = {"Content-Type": "application/json"};
+    const k = localStorage.getItem(KEY_NAME);
+    if (k) h["X-Admin-Key"] = k;
+    return h;
+  };
+  function say(text, ok) { const m = $("msg"); m.textContent = text; m.className = ok ? "ok" : "bad"; }
+
+  async function getStatus() {
+    const res = await fetch("/api/admin/status", {headers: headers()});
+    return await res.json();
+  }
+
+  // Explains what the key box needs right now.
+  async function refreshKeyHelp() {
+    try {
+      const st = await getStatus();
+      const saved = !!localStorage.getItem(KEY_NAME);
+      if (!st.set) {
+        $("key").placeholder = "Create your key (8+ characters)";
+        $("keyHelp").textContent = "No key exists yet. The key you type here, when you press Teach it, becomes your key. Remember it.";
+      } else if (saved && st.authorized) {
+        $("key").placeholder = "Key saved in this browser";
+        $("keyHelp").textContent = "Your key is saved in this browser, so you can leave this empty.";
+      } else {
+        $("key").placeholder = "Enter your key";
+        $("keyHelp").textContent = "Type the key you created before. It will be remembered in this browser.";
+      }
+    } catch (e) { /* server unreachable */ }
+  }
+
+  // Creates the key (first time) or checks it, then saves it in this browser.
+  // Returns null when all is fine, or a message to show.
+  async function ensureKey() {
+    const typed = $("key").value.trim();
+    let st = await getStatus();
+
+    if (typed) {
+      if (!st.set) {
+        if (typed.length < 8) return "The key must be at least 8 characters.";
+        const res = await fetch("/api/admin/setup", {
+          method: "POST", headers: {"Content-Type": "application/json"},
+          body: JSON.stringify({key: typed})
+        });
+        const data = await res.json();
+        if (!data.ok) return data.error || "Could not create the key.";
+      }
+      localStorage.setItem(KEY_NAME, typed);
+      st = await getStatus();
+      if (!st.authorized) { localStorage.removeItem(KEY_NAME); return "Wrong key."; }
+      $("key").value = "";
+      return null;
+    }
+
+    if (st.authorized) return null;
+    return st.set ? "Enter your key in box 3, then press Teach it."
+                  : "Create a key: type one (8+ characters) in box 3, then press Teach it.";
+  }
+
+  async function teach() {
+    const btn = $("teachBtn");
+    btn.disabled = true; say("Checking...", true);
+    try {
+      const problem = await ensureKey();
+      if (problem) { say(problem, false); btn.disabled = false; refreshKeyHelp(); return; }
+
+      say("Checking and saving...", true);
+      const res = await fetch("/learn", {
+        method: "POST", headers: headers(),
+        body: JSON.stringify({code: $("buggy").value, fixed_code: $("fixed").value, lang: $("lang").value})
+      });
+      const data = await res.json();
+      if (data.ok) {
+        say("Learned! Total saved: " + data.total, true);
+        $("buggy").value = ""; $("fixed").value = "";
+        loadList();
+      } else {
+        say(data.error || "Failed", false);
+      }
+    } catch (e) { say("Could not reach the server.", false); }
+    btn.disabled = false;
+    refreshKeyHelp();
+  }
+
+  async function loadList() {
+    const list = $("list"); list.textContent = "";
+    try {
+      const res = await fetch("/api/learned", {headers: headers()});
+      if (res.status === 401) { $("total").textContent = ""; list.textContent = "Locked. Enter your key in box 3 and press Teach it."; return; }
+      const data = await res.json();
+      $("total").textContent = "(" + data.total + " saved)";
+      if (!data.entries.length) { list.textContent = "Nothing yet."; return; }
+      data.entries.forEach((e) => {
+        const box = document.createElement("div"); box.className = "entry";
+        const meta = document.createElement("div"); meta.className = "meta";
+        meta.textContent = e.lang + " | used " + e.uses + " time(s) | " + e.created_at;
+        const a = document.createElement("pre"); a.textContent = e.buggy_code;
+        const b = document.createElement("pre"); b.textContent = e.fixed_code;
+        const del = document.createElement("button"); del.className = "small"; del.textContent = "Delete";
+        del.onclick = async () => { await fetch("/api/learned/" + e.id, {method: "DELETE", headers: headers()}); loadList(); };
+        box.append(meta, a, b, del); list.append(box);
+      });
+    } catch (err) { list.textContent = "Could not load the list."; }
+  }
+
+  $("teachBtn").addEventListener("click", teach);
+  refreshKeyHelp();
+  loadList();
+</script>
+</body>
+</html>

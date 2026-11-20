@@ -266,6 +266,7 @@
   <div class="sidebar-icon active" id="sb-analyse" onclick="switchMode('review')" title="Code Review">⊞</div>
   <div class="sidebar-icon" id="sb-assistant" onclick="switchMode('assistant')" title="AI Assistant">✦</div>
   <div class="sidebar-icon" id="sb-history" onclick="openSideModal('sideHistory')" title="History">⏱</div>
+  <div class="sidebar-icon" onclick="window.location.href='/teach'" title="Teach AI (learn from your corrections)">🧠</div>
   <div class="sidebar-divider"></div>
   <div class="sidebar-icon" onclick="openSideModal('sideReports')" title="Reports">📊</div>
   <div class="sidebar-icon" onclick="openSideModal('sideDocs')" title="Documentation">📖</div>
@@ -312,6 +313,7 @@
 
     <!-- Code Convert (review mode only) -->
     <button class="convert-btn" id="reviewConvertBtn" onclick="openConvert()">⇄ Convert</button>
+    <a class="convert-btn" href="/teach" title="Teach the AI from your corrections" style="text-decoration:none">🧠 Teach AI</a>
 
     <div class="topbar-right">
       <div class="icon-btn notif-badge" title="Notifications" onclick="openSideModal('sideNotifs')">🔔</div>
@@ -657,6 +659,25 @@
      SCRIPTS
 ══════════════════════════════════════════════════════ -->
 <script>window.__ANCHOR_SCORE__ = {{ result.score }};</script>
+<script>
+/* Sends the admin key you saved on the Teach page (kept only in this browser)
+   with the private calls, so History keeps working on the live site. */
+(function () {
+  var realFetch = window.fetch;
+  window.fetch = function (url, opts) {
+    try {
+      var k = localStorage.getItem("ae_admin_key");
+      if (k && typeof url === "string" && (url.indexOf("/api/") === 0 || url === "/learn")) {
+        opts = opts || {};
+        var h = new Headers(opts.headers || {});
+        h.set("X-Admin-Key", k);
+        opts.headers = h;
+      }
+    } catch (e) { /* storage unavailable */ }
+    return realFetch.call(this, url, opts);
+  };
+})();
+</script>
 <script src="{{ url_for('static', filename='app.js') }}"></script>
 </body>
 </html>

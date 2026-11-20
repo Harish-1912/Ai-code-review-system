@@ -3,6 +3,7 @@ from pathlib import Path
 from concurrent.futures import ThreadPoolExecutor
 from groq import Groq
 from dotenv import load_dotenv
+import learning
 
 load_dotenv()
 
@@ -779,6 +780,42 @@ ISSUES:"""
         return _find_faults(code, lang)
 
 
+# ── Learning from your corrections ──────────────────────────────────────────
+def learn_from_correction(code: str, fixed: str, lang: str = 'python') -> dict:
+    """Validate and store a user-supplied correct version of `code`.
+    Wrong or broken "corrections" are rejected so the memory can't be poisoned."""
+    code, fixed = (code or "").strip(), (fixed or "").strip()
+    if not code or not fixed:
+        return {"ok": False, "error": "Both the original code and the corrected code are required."}
+    if code == fixed:
+        return {"ok": False, "error": "The corrected code is identical to the original."}
+    if len(code) > MAX_CODE_CHARS or len(fixed) > MAX_CODE_CHARS:
+        return {"ok": False, "error": f"Too large (limit {MAX_CODE_CHARS:,} chars each)."}
+    if lang == 'python':
+        try:
+            ast.parse(fixed)
+        except SyntaxError as e:
+            return {"ok": False, "error": f"Your corrected code has a syntax error: {e.msg} (line {e.lineno})."}
+    if lang in ('python', 'c'):
+        check = _execute_and_check(fixed, lang)
+        if check.startswith('🔴'):
+            return {"ok": False, "error": "Your corrected code fails when run, so it was not saved:\n"
+                                          + check[:400]}
+    total = learning.save(lang, code, fixed)
+    log.info(f"Learned a new correction ({lang}); {total} stored")
+    return {"ok": True, "total": total}
+
+
+def _examples_block(similar: list) -> str:
+    if not similar:
+        return ""
+    parts = ["Corrections the user previously CONFIRMED as correct for similar code. "
+             "Apply the same kind of fix where it fits; do not copy blindly:\n"]
+    for i, ex in enumerate(similar, 1):
+        parts.append(f"--- EXAMPLE {i} ---\nBUGGY:\n{ex['buggy'][:1500]}\nCORRECT:\n{ex['fixed'][:1500]}\n")
+    return "\n".join(parts) + "\n"
+
+
 # ── Local (no-AI) syntax repair ─────────────────────────────────────────────
 # Fixes the beginner slips that most often break a program outright: a bracket
 # that was never closed (e.g. `print(is_topper`), a missing colon after
@@ -994,9 +1031,29 @@ FIXED CODE:"""
     # repair it locally first so the model reasons about the program's LOGIC
     # instead of being derailed by the typo, and so we always have a
     # parseable fallback even if the model is unavailable or truncated.
+    original_code = code   # exactly what the user pasted; the memory is keyed on THIS
     if lang == 'python':
         code = _local_syntax_repair(code)
         user_base = re.sub(r"BUGGY CODE:\n.*\n\nFIXED CODE:", lambda m: f"BUGGY CODE:\n{code}\n\nFIXED CODE:", user_base, flags=re.S)
+
+    # Memory of the user's own confirmed corrections.
+    try:
+        similar = learning.find_similar(original_code, lang)
+    except Exception:
+        log.exception("learning lookup failed (non-fatal)")
+        similar = []
+    if similar and similar[0]["exact"]:
+        stored = similar[0]["fixed"]
+        check = _execute_and_check(stored, lang) if lang in ('python', 'c') else ""
+        if not check.startswith('🔴'):
+            learning.mark_used(similar[0]["id"])
+            ok = check.startswith('✅')
+            return {"code": stored, "verified": ok, "attempts": 0,
+                    "last_error": "" if ok or not check else check, "from_memory": True}
+    elif similar:
+        user_base = user_base.replace("BUGGY CODE:\n", _examples_block(similar) + "BUGGY CODE:\n", 1)
+        for ex in similar:
+            learning.mark_used(ex["id"])
 
     attempt = 0
     current_error = None
@@ -1254,6 +1311,7 @@ def analyze_logic(code: str, lang: str = 'python') -> dict:
     verified      = fix_result["verified"]
     fix_attempts  = fix_result["attempts"]
     last_error    = fix_result["last_error"]
+    from_memory   = fix_result.get("from_memory", False)
 
     # Verified-correctness floor: the rule+AST+pylint+ML score formula is
     # tuned for CATCHING bugs, which makes it a noisy, overly harsh judge of
@@ -1306,6 +1364,9 @@ def analyze_logic(code: str, lang: str = 'python') -> dict:
     else:
         verify_note = "⚠ Not execution-verified."
 
+    if from_memory:
+        verify_note = "🧠 Used a correction you taught earlier. " + verify_note
+
     # Diff between original and corrected code, for the diff-view toggle.
     diff_rows = _compute_diff(code, corrected) if corrected and corrected.strip() else []
 
@@ -1328,4 +1389,5 @@ def analyze_logic(code: str, lang: str = 'python') -> dict:
         "verified":             verified,
         "verify_note":          verify_note,
         "fix_attempts":         fix_attempts,
+        "from_memory":          from_memory,
     }

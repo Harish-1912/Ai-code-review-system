@@ -1,8 +1,9 @@
 from flask import Flask, render_template, request, jsonify, Response
-from code_analyzer import analyze_logic, _groq_call_with_usage, _groq_stream, MAX_CODE_CHARS
-import re, os, logging, json
+from code_analyzer import analyze_logic, _groq_call_with_usage, _groq_stream, MAX_CODE_CHARS, learn_from_correction
+import re, os, logging, json, hmac
 from flask import Flask, send_file
 import history_db
+import learning
 
 try:
     from flask_limiter import Limiter
@@ -36,6 +37,28 @@ else:
                 return fn
             return deco
     limiter = _NoopLimiter()
+
+# ── Admin protection ───────────────────────────────────────────────────────
+# History, learned corrections and teaching are private data. They are open
+# only (a) when the app is opened on the same computer (127.0.0.1), or
+# (b) when the request carries the secret from the ADMIN_KEY environment
+# variable, or the key you create on the /teach page (the first key entered
+# there becomes the key), sent in an "X-Admin-Key" header.
+ADMIN_KEY = os.getenv("ADMIN_KEY", "")
+
+
+def _is_admin() -> bool:
+    if request.remote_addr in ("127.0.0.1", "::1"):
+        return True
+    sent = request.headers.get("X-Admin-Key", "")
+    if ADMIN_KEY and hmac.compare_digest(sent, ADMIN_KEY):
+        return True
+    return learning.check_admin_key(sent)   # key created on the /teach page
+
+
+def _deny():
+    return jsonify({"error": "Unauthorized"}), 401
+
 
 @app.errorhandler(413)
 def too_large(e):
@@ -291,10 +314,68 @@ def assistant_stream():
     )
 
 
+@app.route("/api/admin/status", methods=["GET"])
+def admin_status():
+    return jsonify({"set": bool(ADMIN_KEY) or learning.admin_key_is_set(),
+                    "authorized": _is_admin()})
+
+
+@app.route("/api/admin/setup", methods=["POST"])
+@limiter.limit("5 per minute")
+def admin_setup():
+    """First key entered becomes the admin key. Refused once any key exists."""
+    if ADMIN_KEY or learning.admin_key_is_set():
+        return jsonify({"error": "A key is already set."}), 403
+    key = ((request.get_json(silent=True) or {}).get("key") or "").strip()
+    if len(key) < 8:
+        return jsonify({"error": "Key must be at least 8 characters."}), 400
+    if not learning.set_admin_key(key):
+        return jsonify({"error": "A key is already set."}), 403
+    return jsonify({"ok": True})
+
+
+@app.route("/teach")
+def teach_page():
+    """The page where you paste buggy code + the correct version."""
+    return render_template("learn.html")
+
+
+@app.route("/learn", methods=["POST"])
+@limiter.limit("20 per minute")
+def learn():
+    """Teach Anchor Elite: body = {code, fixed_code, lang}. The corrected code is
+    validated (must parse and run) before it is stored."""
+    if not _is_admin():
+        return _deny()
+    data = request.get_json(silent=True) or {}
+    result = learn_from_correction(data.get("code", ""), data.get("fixed_code", ""),
+                                   data.get("lang", "python"))
+    return jsonify(result), (200 if result.get("ok") else 400)
+
+
+@app.route("/api/learned", methods=["GET"])
+@limiter.limit("60 per minute")
+def list_learned():
+    if not _is_admin():
+        return _deny()
+    return jsonify({"total": learning.count(), "entries": learning.list_all(50)})
+
+
+@app.route("/api/learned/<int:entry_id>", methods=["DELETE"])
+@limiter.limit("60 per minute")
+def delete_learned(entry_id):
+    if not _is_admin():
+        return _deny()
+    learning.delete(entry_id)
+    return jsonify({"ok": True})
+
+
 @app.route("/api/history/<kind>", methods=["GET"])
 @limiter.limit("60 per minute")
 def get_history(kind):
     """kind is 'analyze' or 'assistant'. Returns most-recent-first JSON list."""
+    if not _is_admin():
+        return _deny()
     if kind not in ("analyze", "assistant"):
         return jsonify({"error": "kind must be 'analyze' or 'assistant'"}), 400
     limit = min(int(request.args.get("limit", 20)), 100)
@@ -310,6 +391,8 @@ def get_history(kind):
 @app.route("/api/history/<kind>/<int:entry_id>", methods=["DELETE"])
 @limiter.limit("60 per minute")
 def delete_history_entry(kind, entry_id):
+    if not _is_admin():
+        return _deny()
     if kind not in ("analyze", "assistant"):
         return jsonify({"error": "kind must be 'analyze' or 'assistant'"}), 400
     try:
@@ -323,6 +406,8 @@ def delete_history_entry(kind, entry_id):
 @app.route("/api/history/<kind>", methods=["DELETE"])
 @limiter.limit("20 per minute")
 def clear_history_route(kind):
+    if not _is_admin():
+        return _deny()
     if kind not in ("analyze", "assistant"):
         return jsonify({"error": "kind must be 'analyze' or 'assistant'"}), 400
     try:
